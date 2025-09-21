@@ -386,6 +386,12 @@ export class App {
   }
 
   async refreshHistory() {
+    // Clear cached thumb URLs so refreshed entries can create fresh object URLs
+    // and avoid showing stale or missing images.
+    for (const [, url] of this.thumbUrls.entries()) {
+      try { URL.revokeObjectURL(url); } catch { /* ignore */ }
+    }
+    this.thumbUrls.clear();
     const entries = await this.storageService.listMeals();
     this.store.dispatch(actions.setHistoryEntries(entries));
     this.renderHistory();
@@ -414,11 +420,11 @@ export class App {
       height: this.currentImage.height,
     };
     try {
-      const id = await this.storageService.saveMeal(record, {
+      await this.storageService.saveMeal(record, {
         normalizedBlob: this.currentImage.blob,
         thumbBlob: this.store.getState().capture.thumbBlob || this.currentImage.blob,
       });
-      const loaded = await this.storageService.loadMeal(id);
+      const loaded = await this.storageService.loadMeal(record.id ?? (await this.storageService.listMeals())[0]?.id);
       this.toast('Meal saved to history');
       await this.refreshHistory();
       if (context === 'history') {
@@ -429,7 +435,7 @@ export class App {
           height: loaded.meal.height,
         };
         this.store.dispatch(
-          actions.loadSavedMeal({ ...loaded.meal, id, showBoxes: selectors.showBoxes(this.store.getState()) }),
+          actions.loadSavedMeal({ ...loaded.meal, id: loaded.meal.id, showBoxes: selectors.showBoxes(this.store.getState()) }),
         );
         this.renderDetail();
       }
@@ -636,7 +642,12 @@ export class App {
 
   ensureThumbUrl(id, blob) {
     if (this.thumbUrls.has(id)) {
-      return this.thumbUrls.get(id);
+      // If we already have a URL but no blob is available now, return existing.
+      // If a new blob arrives, revoke old and create a new URL.
+      const existing = this.thumbUrls.get(id);
+      if (!blob) return existing;
+      try { URL.revokeObjectURL(existing); } catch { /* ignore */ }
+      this.thumbUrls.delete(id);
     }
     if (!blob) return null;
     const url = URL.createObjectURL(blob);

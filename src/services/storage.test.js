@@ -29,6 +29,24 @@ describe('StorageService', () => {
     expect(meals[0].thumbBlob).toBeInstanceOf(Blob);
   });
 
+  test('saves with real Blob without transaction idle errors', async () => {
+    // Why: Reproduces browser path where real Blob.arrayBuffer() is awaited
+    // and ensures we do it before starting the IDB transaction.
+    const service = new StorageService();
+    const normalizedBlob = new Blob([Uint8Array.from([1, 2, 3, 4])], { type: 'image/webp' });
+    const thumbBlob = new Blob([Uint8Array.from([9, 8, 7, 6])], { type: 'image/webp' });
+    const id = await service.saveMeal(
+      { items: [], totalKcal: 0, mealConfidence: 'medium' },
+      { normalizedBlob, thumbBlob },
+    );
+    const listed = await service.listMeals();
+    const entry = listed.find((e) => e.id === id);
+    expect(entry).toBeTruthy();
+    expect(entry.thumbBlob).toBeInstanceOf(Blob);
+    const loaded = await service.loadMeal(id);
+    expect(loaded.images.normalizedBlob).toBeInstanceOf(Blob);
+  });
+
   test('deleteOldest removes the earliest entries', async () => {
     // Why: Supports quota management UI when storage runs low.
     const service = new StorageService();

@@ -47,6 +47,36 @@ function generateId() {
   return `meal-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+async function blobToArrayBuffer(blob) {
+  if (!blob) return null;
+  // Modern browsers and Node 18+
+  if (typeof blob.arrayBuffer === 'function') {
+    try {
+      return await blob.arrayBuffer();
+    } catch {
+      // fall through to other strategies
+    }
+  }
+  // Generic fallback via Fetch/Response
+  if (typeof Response !== 'undefined') {
+    try {
+      return await new Response(blob).arrayBuffer();
+    } catch {
+      // continue
+    }
+  }
+  // Legacy fallback via FileReader (browser only)
+  if (typeof FileReader !== 'undefined') {
+    return await new Promise((resolve, reject) => {
+      const fr = new FileReader();
+      fr.onload = () => resolve(fr.result);
+      fr.onerror = () => reject(fr.error || new Error('FileReader error'));
+      fr.readAsArrayBuffer(blob);
+    });
+  }
+  throw new Error('BLOB_READ_UNSUPPORTED');
+}
+
 export class StorageService {
   constructor({ dbPromise } = {}) {
     this.dbPromise = dbPromise || openDatabase();
@@ -60,6 +90,13 @@ export class StorageService {
     if (!meal || typeof meal !== 'object') {
       throw new Error('meal must be an object');
     }
+    // Important: convert blobs to ArrayBuffers BEFORE opening a transaction.
+    // Some browsers auto-close readwrite transactions when the event loop yields
+    // (e.g., awaiting arrayBuffer()) without pending IDB requests, leading to
+    // "TransactionInactiveError". Reading buffers up-front avoids that.
+  const normalizedBuffer = await blobToArrayBuffer(normalizedBlob);
+  const thumbBuffer = await blobToArrayBuffer(thumbBlob);
+
     const db = await this.#db();
     const tx = db.transaction([MEALS_STORE, IMAGES_STORE], 'readwrite');
     const id = meal.id || generateId();
@@ -69,16 +106,15 @@ export class StorageService {
       createdAt: meal.createdAt || Date.now(),
     };
     tx.objectStore(MEALS_STORE).put(record);
-    const imagesStore = tx.objectStore(IMAGES_STORE);
-    const normalizedBuffer = normalizedBlob ? await normalizedBlob.arrayBuffer() : null;
-    const thumbBuffer = thumbBlob ? await thumbBlob.arrayBuffer() : null;
-    imagesStore.put({
-      id,
-      normalizedBuffer,
-      thumbBuffer,
-      normalizedType: normalizedBlob?.type || 'image/webp',
-      thumbType: thumbBlob?.type || normalizedBlob?.type || 'image/webp',
-    });
+    tx
+      .objectStore(IMAGES_STORE)
+      .put({
+        id,
+        normalizedBuffer,
+        thumbBuffer,
+        normalizedType: normalizedBlob?.type || 'image/webp',
+        thumbType: thumbBlob?.type || normalizedBlob?.type || 'image/webp',
+      });
     await waitForTransaction(tx);
     return id;
   }
