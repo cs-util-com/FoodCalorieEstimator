@@ -337,7 +337,7 @@ export class App {
       const blob = base64ToBlob(DEMO_IMAGE_BASE64, 'image/png');
       this.currentImage = { blob, width: 600, height: 400 };
       this.renderCanvas();
-    } catch (error) {
+    } catch {
       this.toast('Demo failed to load');
     }
   }

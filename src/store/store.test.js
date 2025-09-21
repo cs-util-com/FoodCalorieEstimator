@@ -1,4 +1,4 @@
-import { actions, createStore, initialState, rootReducer, selectors } from './store.js';
+import { actions, createStore, initialState, selectors } from './store.js';
 
 function buildSampleEstimation() {
   return {
