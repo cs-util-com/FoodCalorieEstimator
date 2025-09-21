@@ -9,6 +9,7 @@ describe('PreprocessService', () => {
       width: 0,
       height: 0,
       getContext: () => ({ drawImage: jest.fn() }),
+      toDataURL: () => 'data:image/webp;base64,xxx',
       convertToBlob: jest.fn((options) => {
         exported.push(options);
         return Promise.resolve(new Blob(['x'], { type: 'image/webp' }));
@@ -29,7 +30,7 @@ describe('PreprocessService', () => {
     expect(result.height).toBeLessThanOrEqual(1536);
     expect(result.normalizedBlob).toBeInstanceOf(Blob);
     expect(result.thumbBlob).toBeInstanceOf(Blob);
-    expect(exported[0]).toEqual({ type: 'image/webp', quality: 0.8 });
+  expect(exported[0]).toEqual({ type: 'image/webp', quality: 0.8 });
   });
 
   test('throws when canvas factory fails', async () => {
@@ -56,6 +57,48 @@ describe('PreprocessService', () => {
       canvasFactory,
     });
     const result = await service.preprocess(new Blob(['source']));
+    expect(result.normalizedBlob).toBeInstanceOf(Blob);
+  });
+
+  test('falls back to <img> loader when createImageBitmap fails', async () => {
+    // Simulate failure and ensure <img> path is exercised; mock Image to resolve
+    const createImageBitmapFn = jest.fn(() => {
+      throw new Error('not supported');
+    });
+    const originalURL = global.URL;
+    const objectUrls = [];
+    global.URL = {
+      ...originalURL,
+      createObjectURL: (blob) => {
+        const u = `blob:mock:${objectUrls.length + 1}`;
+        objectUrls.push(u);
+        return u;
+      },
+      revokeObjectURL: jest.fn(),
+    };
+    const img = {};
+    global.Image = class {
+      constructor() {
+        setTimeout(() => {
+          if (this.onload) this.onload();
+        }, 0);
+      }
+      set src(v) {
+        img.src = v; // track
+      }
+    };
+    const canvasFactory = () => ({
+      width: 0,
+      height: 0,
+      getContext: () => ({ drawImage: jest.fn() }),
+      toBlob: (cb, type) => cb(new Blob(['a'], { type: type || 'image/png' })),
+      toDataURL: () => 'data:image/png;base64,xxx',
+    });
+    const service = new PreprocessService({ createImageBitmapFn, canvasFactory });
+    const result = await service.preprocess(new Blob(['pic']))
+      .finally(() => {
+        global.URL = originalURL;
+      });
     expect(result.normalizedBlob).toBeInstanceOf(Blob);
   });
 });
