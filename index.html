@@ -1,134 +1,261 @@
-<!-- For the user stories & requirements see the README.md file -->
-
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Decoupled Modules Example with Person Class</title>
-  <!-- Favicon: A white box --> <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23fff'/%3E%3C/svg%3E" type="image/svg+xml">
-  <!-- Use Tailwind CSS for all CSS styling -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    @view-transition {
-      navigation: auto;
-    }
-    
-    nav a[aria-current="page"]:after {
-      border-color: white;
-      view-transition-name: posts-nav;
-    }
-    
-    /* Old stuff going out */
-    ::view-transition-old(posts-nav) {
-      animation: fade 0.2s linear forwards;
-      height: 100%;
-    }
-    
-    /* New stuff coming in */
-    ::view-transition-new(posts-nav) {
-      animation: fade 0.3s linear reverse;
-      height: 100%;
-    }
-    
-    @keyframes fade {
-      from { opacity: 1; }
-      to { opacity: 0; }
-    }
-  </style>
-  <script>
-    // Only use if browser supports View Transitions
-    if (document.startViewTransition) {
-      window.addEventListener('click', (e) => {
-        // Only handle internal links
-        if (e.target.tagName === 'A' && e.target.origin === window.location.origin) {
-          e.preventDefault();
-          document.startViewTransition(() => {
-            window.location.href = e.target.href;
-          });
-        }
-      });
-    }
-  </script>
-  <script src="src/index.js"></script>
-</head>
-<body class="font-mono p-8 bg-gray-50">
-  <div class="max-w-4xl mx-auto">
-    <header class="mb-8">
-      <h1 class="text-3xl font-bold text-blue-600 mb-4">Template Web App</h1>
-      <nav class="bg-blue-600 text-white p-4 rounded-lg mb-4">
-        <a href="index.html" class="mr-6 hover:underline font-bold relative" aria-current="page">
-          Home
-          <span class="absolute bottom-0 left-0 w-full h-0.5 bg-white"></span>
-        </a>
-        <a href="pages/features.html" class="mr-6 hover:underline">Features</a>
-        <a href="pages/about.html" class="hover:underline">About</a>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CalorieCam</title>
+    <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@2/css/pico.min.css" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%230066ff' d='M3 5h18v14H3z'/%3E%3Crect x='6' y='8' width='12' height='8' fill='%23fff'/%3E%3Ccircle cx='12' cy='12' r='2' fill='%230066ff'/%3E%3C/svg%3E" type="image/svg+xml" />
+    <style>
+      body {
+        min-height: 100vh;
+        background: radial-gradient(circle at top, #f3f6ff, #ffffff 55%);
+      }
+      header h1 {
+        margin-bottom: 0.5rem;
+      }
+      .tab-nav {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+      .tab-nav button[aria-current='page'] {
+        background: var(--primary);
+        color: white;
+      }
+      .view {
+        display: none;
+      }
+      .view.is-active {
+        display: block;
+      }
+      .history-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1rem;
+      }
+      .thumbnail {
+        position: relative;
+        overflow: hidden;
+        border-radius: 0.75rem;
+        box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.08);
+      }
+      .thumbnail img {
+        width: 100%;
+        height: 160px;
+        object-fit: cover;
+      }
+      .thumbnail span {
+        position: absolute;
+        bottom: 0.5rem;
+        left: 0.5rem;
+        background: rgba(0, 0, 0, 0.65);
+        color: #fff;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.5rem;
+        font-size: 0.8rem;
+      }
+      .item-card {
+        border: 1px solid var(--muted-border-color);
+        border-radius: 0.75rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+      }
+      .item-card.excluded {
+        opacity: 0.6;
+      }
+      .bbox-toggle {
+        margin-bottom: 0.5rem;
+      }
+      .range-badge {
+        background: var(--primary);
+        color: #fff;
+        padding: 0.25rem 0.75rem;
+        border-radius: 999px;
+      }
+      #canvas-wrapper {
+        position: relative;
+      }
+      #canvas-overlay {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        font-size: 0.75rem;
+        color: #fff;
+      }
+      #canvas-overlay .box {
+        position: absolute;
+        border: 2px solid rgba(0, 102, 255, 0.85);
+        border-radius: 0.5rem;
+        padding: 0.25rem;
+        background: rgba(0, 102, 255, 0.35);
+      }
+      .logs {
+        max-height: 200px;
+        overflow-y: auto;
+        border: 1px solid var(--muted-border-color);
+        padding: 0.75rem;
+        border-radius: 0.75rem;
+        font-family: var(--font-monospace);
+      }
+      mark {
+        background: rgba(255, 230, 150, 0.8);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="container">
+      <header>
+        <h1>CalorieCam</h1>
+        <p class="lead">Single-photo calorie estimation with editable results and offline history.</p>
+      </header>
+      <nav class="tab-nav" aria-label="Main navigation">
+        <button class="secondary" data-tab="camera" aria-current="page">Camera</button>
+        <button class="secondary" data-tab="history">History</button>
+        <button class="secondary" data-tab="settings">Settings</button>
       </nav>
-      <div class="bg-blue-100 border-l-4 border-blue-500 p-4 mb-6">
-        <p class="text-sm text-blue-700">This is a Tailwind CSS demonstration with modular JavaScript.</p>
-      </div>
-    </header>
-    
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-      <!-- Card 1 -->
-      <div class="bg-white p-6 rounded-lg shadow-md">
-        <h2 class="text-xl font-bold mb-4 text-gray-800">Greeting Card</h2>
-        <p class="text-gray-600 mb-4">Click the button below to greet the person.</p>
-        <button id="greetBtn" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-300">
-          Greet
-        </button>
-      </div>
-      
-      <!-- Card 2 -->
-      <div class="bg-white p-6 rounded-lg shadow-md">
-        <h2 class="text-xl font-bold mb-4 text-gray-800">Tailwind Features</h2>
-        <ul class="list-disc pl-5 space-y-2 text-gray-600">
-          <li>Responsive design with <span class="font-bold text-blue-500">breakpoints</span></li>
-          <li>Utility-first CSS framework</li>
-          <li>Customizable with configuration</li>
-        </ul>
-        <div class="mt-4">
-          <div class="flex gap-2">
-            <span class="bg-red-200 text-red-800 text-xs p-1 rounded">Tag</span>
-            <span class="bg-green-200 text-green-800 text-xs p-1 rounded">Utility</span>
-            <span class="bg-yellow-200 text-yellow-800 text-xs p-1 rounded">Responsive</span>
+
+      <section id="camera-view" class="view is-active" aria-labelledby="camera-tab">
+        <article>
+          <header>
+            <h2>Capture</h2>
+            <p>Select or take a photo to estimate calories. Try the demo image to explore without a key.</p>
+          </header>
+          <div class="grid">
+            <label>
+              <span>Upload image</span>
+              <input id="file-input" type="file" accept="image/*" capture />
+            </label>
+            <button id="demo-button" class="contrast" type="button">Run demo image</button>
           </div>
-        </div>
-      </div>
-    </div>
-    
-    <div class="bg-white p-6 rounded-lg shadow">
-      <h2 class="text-xl font-bold mb-4 text-gray-800">Interactive Components</h2>
-      <div class="mb-4">
-        <label class="block text-gray-700 text-sm font-bold mb-2" for="username">
-          Username
-        </label>
-        <input class="w-full p-2 border rounded text-gray-700 focus:outline-none focus:shadow-outline" id="username" type="text" placeholder="Username">
-      </div>
-      <div class="flex justify-between">
-        <button class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none transition">
-          Save
-        </button>
-        <button class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none transition">
-          Cancel
-        </button>
-      </div>
-    </div>
-  </div>
-  
-  <!-- Load the main module -->
-  <script type="module">
+          <div class="bbox-toggle">
+            <label>
+              <input type="checkbox" id="toggle-boxes" />
+              <span>Show bounding boxes</span>
+            </label>
+          </div>
+          <div id="capture-status" role="status" aria-live="polite"></div>
+          <div id="canvas-wrapper" hidden>
+            <canvas id="result-canvas" width="640" height="480"></canvas>
+            <div id="canvas-overlay"></div>
+          </div>
+        </article>
+      </section>
 
-    import { tellBirthday } from './src/utils/utils.js';
-    import { Person } from './src/components/person.js';
+      <section id="result-view" class="view" aria-live="polite">
+        <article>
+          <header>
+            <h2>Result</h2>
+            <p id="result-summary"></p>
+            <small id="result-note" class="muted"></small>
+          </header>
+          <div id="items-list"></div>
+          <footer class="grid">
+            <button id="add-item" type="button">Add item</button>
+            <button id="save-meal" class="contrast" type="button">Save meal</button>
+          </footer>
+          <form id="add-item-form" hidden>
+            <fieldset>
+              <legend>Add manual item</legend>
+              <label> Name <input name="name" required /> </label>
+              <label> kcal <input name="kcal" type="number" min="0" step="1" required /></label>
+              <label> Confidence <input name="confidence" type="number" min="0" max="1" step="0.01" value="0.5" /></label>
+              <button type="submit">Add</button>
+            </fieldset>
+          </form>
+        </article>
+      </section>
 
-    // Create a new Person instance with values defined in the HTML.
-    const person = new Person('Alice', 40);
-    document.getElementById('greetBtn').addEventListener('click', () => {
-      alert(tellBirthday(person));
-    });
+      <section id="history-view" class="view" aria-labelledby="history-tab">
+        <article>
+          <header>
+            <h2>History</h2>
+            <p>Saved meals stay on this device. Search item names to filter.</p>
+          </header>
+          <input id="history-search" type="search" placeholder="Search meals" />
+          <div id="history-grid" class="history-grid"></div>
+        </article>
+      </section>
 
-  </script>
+      <section id="detail-view" class="view" aria-labelledby="detail-tab">
+        <article>
+          <header>
+            <h2>Meal detail</h2>
+            <p id="detail-summary"></p>
+            <small id="detail-note" class="muted"></small>
+          </header>
+          <div class="grid">
+            <button id="detail-export" type="button">Export CSV</button>
+            <button id="detail-delete" class="secondary" type="button">Delete</button>
+            <button id="detail-close" type="button">Close</button>
+          </div>
+          <div id="detail-items"></div>
+          <footer class="grid">
+            <button id="detail-add-item" type="button">Add item</button>
+            <button id="detail-save" class="contrast" type="button">Save changes</button>
+          </footer>
+          <form id="detail-add-item-form" hidden>
+            <fieldset>
+              <legend>Add manual item</legend>
+              <label> Name <input name="name" required /></label>
+              <label> kcal <input name="kcal" type="number" min="0" step="1" required /></label>
+              <label> Confidence <input name="confidence" type="number" min="0" max="1" step="0.01" value="0.5" /></label>
+              <button type="submit">Add</button>
+            </fieldset>
+          </form>
+        </article>
+      </section>
 
-</body>
+      <section id="settings-view" class="view" aria-labelledby="settings-tab">
+        <article>
+          <header>
+            <h2>Settings</h2>
+          </header>
+          <form id="settings-form" class="grid">
+            <label> Gemini API key <input name="apiKey" type="password" autocomplete="off" placeholder="AIza..." /></label>
+            <label>
+              Model variant
+              <select name="modelVariant">
+                <option value="flash">Gemini 2.5 Flash</option>
+                <option value="pro">Gemini 2.5 Pro</option>
+              </select>
+            </label>
+            <label>
+              Preprocess size (px)
+              <select name="preprocessSize">
+                <option value="1024">1024</option>
+                <option value="1536">1536</option>
+              </select>
+            </label>
+            <label>
+              Units
+              <select name="units">
+                <option value="kcal">kcal</option>
+                <option value="kJ">kJ</option>
+              </select>
+            </label>
+            <label>
+              Default bounding boxes
+              <input type="checkbox" name="defaultShowBoxes" />
+            </label>
+            <label>
+              Confidence threshold
+              <input type="range" name="confidenceThreshold" min="0" max="1" step="0.05" />
+            </label>
+            <button type="submit" class="contrast">Save settings</button>
+          </form>
+          <div class="grid">
+            <button id="logs-toggle" type="button">Show logs</button>
+            <button id="wipe-data" class="secondary" type="button">Wipe all data</button>
+          </div>
+          <pre id="logs" class="logs" hidden></pre>
+          <footer>
+            <a href="docs/about.html" id="about-link">About &amp; disclaimers</a>
+          </footer>
+        </article>
+      </section>
+    </main>
+    <dialog id="notification-dialog"></dialog>
+    <script type="module" src="./src/index.js"></script>
+  </body>
 </html>
