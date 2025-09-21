@@ -97,4 +97,37 @@ describe('EstimationService', () => {
     await expect(service.estimate({ imageBlob: createFakeBlob(), apiKey: 'key' })).rejects.toThrow('ESTIMATION_SCHEMA_ERROR');
     expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
+
+  test('retries with compact prompt on MAX_TOKENS empty response', async () => {
+    // Why: Ensures we handle empty text with finishReason=MAX_TOKENS by retrying with more tokens and compact prompt.
+    const emptyWithMaxTokens = {
+      candidates: [
+        {
+          finishReason: 'MAX_TOKENS',
+          content: { parts: [] },
+        },
+      ],
+      usageMetadata: {
+        promptTokenCount: 300,
+        candidatesTokenCount: 700,
+        totalTokenCount: 1000,
+        thoughtsTokenCount: 100,
+      },
+    };
+    const okWithJson = {
+      candidates: [
+        {
+          content: { parts: [{ text: JSON.stringify(SAMPLE_RESPONSE) }] },
+        },
+      ],
+    };
+    const fetchImpl = jest.fn()
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(emptyWithMaxTokens) })
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(okWithJson) });
+    const service = new EstimationService({ fetchImpl, maxSchemaRetries: 1 });
+    const blob = createFakeBlob();
+    const result = await service.estimate({ imageBlob: blob, apiKey: 'key' });
+    expect(result.version).toBe('1.1');
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
 });

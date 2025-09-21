@@ -5,16 +5,19 @@ const MODEL_IDS = {
   pro: 'gemini-2.5-pro',
 };
 
-const PROMPT = `You are a nutrition analyst that estimates calories for meals.
-Return JSON only. Follow the v1.1 schema with fields: version, model_id, meal_confidence, total_kcal, items[].
-Do not include any prose or explanations.`;
+const PROMPT = `You are a nutrition analyst.
+Analyze the attached meal photo and return only a valid JSON object (no prose, no markdown, no comments).
+Use concise values and short strings. Output JSON only.`;
+
+// Ultra-compact fallback prompt used when we hit MAX_TOKENS and get empty text
+const COMPACT_PROMPT = `Return JSON only with: version:"1.1", model_id:"gemini-2.5", meal_confidence:(very-low|low|medium|high|very-high), total_kcal:int, items:[{name, kcal:int, confidence:0-1, estimated_grams:int|null, used_scale_ref:bool, scale_ref:(fork|spoon|credit_card|plate|chopsticks|other|null), bbox_1000:{x:int,y:int,w:int,h:int}|null, notes:string|null}].`;
 
 const RESPONSE_SCHEMA = {
   type: 'object',
   properties: {
-    version: { type: 'string' },
-    model_id: { type: 'string' },
-    meal_confidence: { type: 'string' },
+    version: { type: 'string', enum: ['1.1'] },
+    model_id: { type: 'string', enum: ['gemini-2.5'] },
+    meal_confidence: { type: 'string', enum: ['very-low', 'low', 'medium', 'high', 'very-high'] },
     total_kcal: { type: 'integer' },
     items: {
       type: 'array',
@@ -28,7 +31,7 @@ const RESPONSE_SCHEMA = {
           confidence: { type: 'number' },
           estimated_grams: { type: 'integer' },
           used_scale_ref: { type: 'boolean' },
-          scale_ref: { type: 'string' },
+          scale_ref: { type: 'string', enum: ['fork', 'spoon', 'credit_card', 'plate', 'chopsticks', 'other'] },
           bbox_1000: {
             type: 'object',
             properties: {
@@ -97,16 +100,21 @@ export class EstimationService {
     const imageData = await blobToBase64(imageBlob);
 
     let attempt = 0;
+    let forceOmitSchema = false; // set to true only if API rejects responseSchema with 400
     let lastError = null;
+    let nextMaxTokens = 1500; // start generous to reduce empty outputs
+    let useCompactPrompt = false; // flip on if MAX_TOKENS occurs
     while (attempt <= this.maxSchemaRetries) {
       attempt += 1;
       const startedAt = performance.now?.() ?? Date.now();
       // Build payload per attempt to allow fallback on retry
       const useFallback = attempt > 1;
+      const omitSchema = forceOmitSchema === true;
+      const systemText = useCompactPrompt ? COMPACT_PROMPT : PROMPT;
       const payload = {
         systemInstruction: {
           role: 'system',
-          parts: [{ text: PROMPT }],
+          parts: [{ text: systemText }],
         },
         contents: [
           {
@@ -118,16 +126,16 @@ export class EstimationService {
                   data: imageData,
                 },
               },
-              { text: useFallback ? 'Return valid JSON only per the schema.' : 'Analyze this meal photo and return valid JSON only.' },
+              { text: 'Return valid JSON only per the schema.' },
             ],
           },
         ],
         generationConfig: {
           temperature: 0.2,
           topP: 0.9,
-          maxOutputTokens: useFallback ? 1500 : 900,
+          maxOutputTokens: nextMaxTokens,
           responseMimeType: 'application/json',
-          ...(useFallback ? {} : { responseSchema: RESPONSE_SCHEMA }),
+          ...(!omitSchema ? { responseSchema: RESPONSE_SCHEMA } : {}),
         },
       };
       const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
@@ -166,6 +174,7 @@ export class EstimationService {
             lastError.code = 'HTTP';
             lastError.status = response.status;
             lastError.details = textBody?.slice(0, 500) || '';
+            forceOmitSchema = true;
             // Go to next loop iteration (will set useFallback=true)
             continue;
           }
@@ -177,14 +186,33 @@ export class EstimationService {
           throw error;
         }
         const json = await response.json();
+        const finishReason = json?.candidates?.[0]?.finishReason;
+        const usage = json?.usageMetadata;
         const text = extractText(json);
         if (!text) {
           // Provide diagnostic info when provider responds without text
           const diag = {
-            finishReason: json?.candidates?.[0]?.finishReason,
+            finishReason,
             promptFeedback: json?.promptFeedback,
+            usage: usage
+              ? {
+                  prompt: usage?.promptTokenCount,
+                  candidates: usage?.candidatesTokenCount,
+                  total: usage?.totalTokenCount,
+                  thoughts: usage?.thoughtsTokenCount,
+                }
+              : undefined,
           };
           console.warn('[CalorieCam] Empty Gemini response', diag);
+          // If we ran out of tokens, try once more with a higher limit and compact prompt
+          if (finishReason === 'MAX_TOKENS' && nextMaxTokens < 2048) {
+            nextMaxTokens = 2048;
+            useCompactPrompt = true;
+            lastError = new Error('ESTIMATION_EMPTY_RESPONSE_MAX_TOKENS_RETRY');
+            lastError.code = 'EMPTY';
+            lastError.details = JSON.stringify(diag).slice(0, 500);
+            continue;
+          }
           lastError = new Error('ESTIMATION_EMPTY_RESPONSE');
           lastError.code = 'EMPTY';
           lastError.details = JSON.stringify(diag).slice(0, 500);
