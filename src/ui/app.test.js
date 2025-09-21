@@ -137,6 +137,28 @@ describe('App UI integration', () => {
     expect(document.querySelector('#history-grid small').innerHTML).toContain('<mark>cado</mark>');
   });
 
+  test('renderHistory tolerates non-Blob thumbBlob', () => {
+    // Why: In the browser, malformed entries or legacy data could provide a non-Blob; UI must not crash.
+    const badThumb = { type: 'image/webp', arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)) };
+    store.dispatch(
+      actions.setHistoryEntries([
+        {
+          id: 'h2',
+          createdAt: 2,
+          totalKcal: 100,
+          mealConfidence: 'low',
+          items: [{ name: 'Tea' }],
+          thumbBlob: badThumb, // not a real Blob
+        },
+      ]),
+    );
+    URL.createObjectURL = jest.fn(() => 'blob:url');
+    // Should not throw; should fall back to placeholder image
+    expect(() => app.renderHistory()).not.toThrow();
+    const imgSrc = document.querySelector('#history-grid img')?.getAttribute('src');
+    expect(imgSrc).toMatch(/via\.placeholder\.com/);
+  });
+
   test('saveMeal forwards data to storage service', async () => {
     // Why: Verifies persistence includes image metadata and totals.
     const sample = {

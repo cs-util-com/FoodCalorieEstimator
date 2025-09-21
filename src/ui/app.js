@@ -649,7 +649,9 @@ export class App {
       try { URL.revokeObjectURL(existing); } catch { /* ignore */ }
       this.thumbUrls.delete(id);
     }
-    if (!blob) return null;
+    // Validate blob is really a Blob/MediaSource-like before creating the URL
+    const isBlobLike = blob instanceof Blob || (blob && typeof blob.arrayBuffer === 'function');
+    if (!blob || !isBlobLike) return null;
     const url = URL.createObjectURL(blob);
     this.thumbUrls.set(id, url);
     return url;
