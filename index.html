@@ -4,103 +4,28 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>CalorieCam</title>
-    <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@2/css/pico.min.css" />
+  <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@2/css/pico.min.css" />
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%230066ff' d='M3 5h18v14H3z'/%3E%3Crect x='6' y='8' width='12' height='8' fill='%23fff'/%3E%3Ccircle cx='12' cy='12' r='2' fill='%230066ff'/%3E%3C/svg%3E" type="image/svg+xml" />
     <style>
-      body {
-        min-height: 100vh;
-        background: radial-gradient(circle at top, #f3f6ff, #ffffff 55%);
-      }
-      header h1 {
-        margin-bottom: 0.5rem;
-      }
-      .tab-nav {
-        display: flex;
-        gap: 0.5rem;
-        flex-wrap: wrap;
-      }
-      .tab-nav button[aria-current='page'] {
-        background: var(--primary);
-        color: white;
-      }
-      .view {
-        display: none;
-      }
-      .view.is-active {
-        display: block;
-      }
-      .history-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 1rem;
-      }
-      .thumbnail {
-        position: relative;
-        overflow: hidden;
-        border-radius: 0.75rem;
-        box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.08);
-      }
-      .thumbnail img {
-        width: 100%;
-        height: 160px;
-        object-fit: cover;
-      }
-      .thumbnail span {
-        position: absolute;
-        bottom: 0.5rem;
-        left: 0.5rem;
-        background: rgba(0, 0, 0, 0.65);
-        color: #fff;
-        padding: 0.25rem 0.5rem;
-        border-radius: 0.5rem;
-        font-size: 0.8rem;
-      }
-      .item-card {
-        border: 1px solid var(--muted-border-color);
-        border-radius: 0.75rem;
-        padding: 1rem;
-        margin-bottom: 1rem;
-      }
-      .item-card.excluded {
-        opacity: 0.6;
-      }
-      .bbox-toggle {
-        margin-bottom: 0.5rem;
-      }
-      .range-badge {
-        background: var(--primary);
-        color: #fff;
-        padding: 0.25rem 0.75rem;
-        border-radius: 999px;
-      }
-      #canvas-wrapper {
-        position: relative;
-      }
-      #canvas-overlay {
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-        font-size: 0.75rem;
-        color: #fff;
-      }
-      #canvas-overlay .box {
-        position: absolute;
-        border: 2px solid rgba(0, 102, 255, 0.85);
-        border-radius: 0.5rem;
-        padding: 0.25rem;
-        background: rgba(0, 102, 255, 0.35);
-      }
-      .logs {
-        max-height: 200px;
-        overflow-y: auto;
-        border: 1px solid var(--muted-border-color);
-        padding: 0.75rem;
-        border-radius: 0.75rem;
-        font-family: var(--font-monospace);
-      }
-      mark {
-        background: rgba(255, 230, 150, 0.8);
-      }
+      /* Lean custom styles: Pico provides the rest */
+      body { min-height: 100vh; background: radial-gradient(circle at top, #f5f7ff, #ffffff 55%); }
+      .tab-nav { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+      .tab-nav button[aria-current='page'] { background: var(--primary); color: #fff; }
+      .view { display: none; }
+      .view.is-active { display: block; }
+      .history-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; }
+      .thumbnail { position: relative; overflow: hidden; border-radius: 0.75rem; box-shadow: 0 0.5rem 1.25rem rgba(0,0,0,0.06); }
+      .thumbnail img { width: 100%; height: 160px; object-fit: cover; }
+      .thumbnail span { position: absolute; bottom: 0.5rem; left: 0.5rem; background: rgba(0,0,0,0.65); color: #fff; padding: 0.25rem 0.5rem; border-radius: 0.5rem; font-size: 0.8rem; }
+      .item-card { border: 1px solid var(--muted-border-color); border-radius: 0.75rem; padding: 1rem; margin-bottom: 1rem; }
+      .item-card.excluded { opacity: 0.6; }
+      .bbox-toggle { margin-bottom: 0.5rem; }
+      .range-badge { background: var(--primary); color: #fff; padding: 0.25rem 0.75rem; border-radius: 999px; }
+      #canvas-wrapper { position: relative; }
+      #canvas-overlay { position: absolute; inset: 0; pointer-events: none; font-size: 0.75rem; color: #fff; }
+      #canvas-overlay .box { position: absolute; border: 2px solid rgba(0,102,255,0.85); border-radius: 0.5rem; padding: 0.25rem; background: rgba(0,102,255,0.35); }
+      .logs { max-height: 200px; overflow-y: auto; border: 1px solid var(--muted-border-color); padding: 0.75rem; border-radius: 0.75rem; font-family: var(--font-monospace); }
+      mark { background: rgba(255, 230, 150, 0.8); }
     </style>
   </head>
   <body>
@@ -110,9 +35,9 @@
         <p class="lead">Single-photo calorie estimation with editable results and offline history.</p>
       </header>
       <nav class="tab-nav" aria-label="Main navigation">
-        <button class="secondary" data-tab="camera" aria-current="page">Camera</button>
-        <button class="secondary" data-tab="history">History</button>
-        <button class="secondary" data-tab="settings">Settings</button>
+        <button id="camera-tab" class="secondary" data-tab="camera" aria-current="page">Camera</button>
+        <button id="history-tab" class="secondary" data-tab="history">History</button>
+        <button id="settings-tab" class="secondary" data-tab="settings">Settings</button>
       </nav>
 
       <section id="camera-view" class="view is-active" aria-labelledby="camera-tab">
@@ -142,7 +67,7 @@
         </article>
       </section>
 
-      <section id="result-view" class="view" aria-live="polite">
+      <section id="result-view" class="view" aria-live="polite" aria-labelledby="camera-tab">
         <article>
           <header>
             <h2>Result</h2>
@@ -177,7 +102,7 @@
         </article>
       </section>
 
-      <section id="detail-view" class="view" aria-labelledby="detail-tab">
+      <section id="detail-view" class="view" aria-labelledby="history-tab">
         <article>
           <header>
             <h2>Meal detail</h2>
@@ -250,7 +175,7 @@
           </div>
           <pre id="logs" class="logs" hidden></pre>
           <footer>
-            <a href="docs/about.html" id="about-link">About &amp; disclaimers</a>
+            <a href="pages/about.html" id="about-link">About &amp; disclaimers</a>
           </footer>
         </article>
       </section>
