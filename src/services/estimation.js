@@ -5,10 +5,6 @@ const MODEL_IDS = {
   pro: 'gemini-2.5-pro',
 };
 
-const PROMPT = `You are a nutrition analyst.
-Analyze the attached meal photo and return only a valid JSON object (no prose, no markdown, no comments).
-Use concise values and short strings. Output JSON only.`;
-
 // Ultra-compact fallback prompt used when we hit MAX_TOKENS and get empty text
 const COMPACT_PROMPT = `Return JSON only with: version:"1.1", model_id:"gemini-2.5", meal_confidence:(very-low|low|medium|high|very-high), total_kcal:int, items:[{name, kcal:int, confidence:0-1, estimated_grams:int|null, used_scale_ref:bool, scale_ref:(fork|spoon|credit_card|plate|chopsticks|other|null), bbox_1000:{x:int,y:int,w:int,h:int}|null, notes:string|null}].`;
 
@@ -110,24 +106,22 @@ export class EstimationService {
       // Build payload per attempt to allow fallback on retry
       const useFallback = attempt > 1;
       const omitSchema = forceOmitSchema === true;
-      const systemText = useCompactPrompt ? COMPACT_PROMPT : PROMPT;
-      const payload = {
-        systemInstruction: {
-          role: 'system',
-          parts: [{ text: systemText }],
+      const parts = [
+        {
+          inlineData: {
+            mimeType: imageBlob.type || 'image/jpeg',
+            data: imageData,
+          },
         },
+      ];
+      if (useCompactPrompt) {
+        parts.push({ text: COMPACT_PROMPT });
+      }
+      const payload = {
         contents: [
           {
             role: 'user',
-            parts: [
-              {
-                inlineData: {
-                  mimeType: imageBlob.type || 'image/jpeg',
-                  data: imageData,
-                },
-              },
-              { text: 'Return valid JSON only per the schema.' },
-            ],
+            parts,
           },
         ],
         generationConfig: {
