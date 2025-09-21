@@ -552,12 +552,13 @@ export class App {
     estimation.items.forEach((item) => {
       const card = document.createElement('section');
       card.className = `item-card ${item.included ? '' : 'excluded'}`;
+      const safeName = escapeHtml(item.name ?? '');
       card.innerHTML = `
         <header class="grid">
-          <strong>${item.name}</strong>
+          <strong>${safeName}</strong>
           <span>${(item.confidence * 100).toFixed(0)}% confidence</span>
         </header>
-        <label>Rename <input data-action="rename" value="${item.name}" /></label>
+        <label>Rename <input data-action="rename" value="${safeName}" /></label>
         <label>Manual kcal <input data-action="kcal" type="number" min="0" step="1" value="${
           item.editedKcal ?? ''
         }" placeholder="${item.originalKcal}" /></label>
