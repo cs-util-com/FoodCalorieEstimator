@@ -69,8 +69,8 @@ describe('EstimationService', () => {
 
   // Removed retries: no separate test for exceeding retries; schema error occurs on first attempt.
 
-  test('throws EMPTY on MAX_TOKENS empty response without retry', async () => {
-    // Why: Simplified service surfaces empty response as an error immediately.
+  test('retries once on MAX_TOKENS empty response and succeeds', async () => {
+    // Why: With capped thinking and larger output, we still guard with a single retry on truncation.
     const emptyWithMaxTokens = {
       candidates: [
         {
@@ -85,9 +85,19 @@ describe('EstimationService', () => {
         thoughtsTokenCount: 100,
       },
     };
-    const fetchImpl = jest.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve(emptyWithMaxTokens) });
+    const okWithJson = {
+      candidates: [
+        {
+          content: { parts: [{ text: JSON.stringify(SAMPLE_RESPONSE) }] },
+        },
+      ],
+    };
+    const fetchImpl = jest.fn()
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(emptyWithMaxTokens) })
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(okWithJson) });
     const service = new EstimationService({ fetchImpl });
-    await expect(service.estimate({ imageBlob: createFakeBlob(), apiKey: 'key' })).rejects.toThrow('ESTIMATION_EMPTY_RESPONSE');
-    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    const result = await service.estimate({ imageBlob: createFakeBlob(), apiKey: 'key' });
+    expect(result.version).toBe('1.1');
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 });

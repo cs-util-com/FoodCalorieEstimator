@@ -8,35 +8,35 @@ const MODEL_IDS = {
 // No prompt text is sent; strict responseSchema enforces JSON output shape.
 
 const RESPONSE_SCHEMA = {
-  type: 'object',
+  type: 'OBJECT',
   properties: {
-    version: { type: 'string', enum: ['1.1'] },
-    model_id: { type: 'string', enum: ['gemini-2.5'] },
-    meal_confidence: { type: 'string', enum: ['very-low', 'low', 'medium', 'high', 'very-high'] },
-    total_kcal: { type: 'integer' },
+    version: { type: 'STRING', enum: ['1.1'] },
+    model_id: { type: 'STRING', enum: ['gemini-2.5'] },
+    meal_confidence: { type: 'STRING', enum: ['very-low', 'low', 'medium', 'high', 'very-high'] },
+    total_kcal: { type: 'INTEGER' },
     items: {
-      type: 'array',
+      type: 'ARRAY',
       minItems: 1,
       maxItems: 12,
       items: {
-        type: 'object',
+        type: 'OBJECT',
         properties: {
-          name: { type: 'string' },
-          kcal: { type: 'integer' },
-          confidence: { type: 'number' },
-          estimated_grams: { type: 'integer' },
-          used_scale_ref: { type: 'boolean' },
-          scale_ref: { type: 'string', enum: ['fork', 'spoon', 'credit_card', 'plate', 'chopsticks', 'other'] },
+          name: { type: 'STRING' },
+          kcal: { type: 'INTEGER' },
+          confidence: { type: 'NUMBER' },
+          estimated_grams: { type: 'INTEGER' },
+          used_scale_ref: { type: 'BOOLEAN' },
+          scale_ref: { type: 'STRING', enum: ['fork', 'spoon', 'credit_card', 'plate', 'chopsticks', 'other'] },
           bbox_1000: {
-            type: 'object',
+            type: 'OBJECT',
             properties: {
-              x: { type: 'integer' },
-              y: { type: 'integer' },
-              w: { type: 'integer' },
-              h: { type: 'integer' },
+              x: { type: 'INTEGER' },
+              y: { type: 'INTEGER' },
+              w: { type: 'INTEGER' },
+              h: { type: 'INTEGER' },
             },
           },
-          notes: { type: 'string' },
+          notes: { type: 'STRING' },
         },
         required: ['name', 'kcal', 'confidence'],
       },
@@ -93,8 +93,12 @@ export class EstimationService {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`;
     const imageData = await blobToBase64(imageBlob);
 
-    const startedAt = performance.now?.() ?? Date.now();
-    const payload = {
+    // Token/Thinking configuration
+    let thinkingBudget = 128; // small, non-zero budget to keep reasoning while avoiding truncation
+    let maxOutputTokens = 3072; // higher default to help complete JSON
+    let didRetry = false;
+
+    const buildPayload = () => ({
       contents: [
         {
           role: 'user',
@@ -111,73 +115,109 @@ export class EstimationService {
       generationConfig: {
         temperature: 0.2,
         topP: 0.9,
-        maxOutputTokens: 2048,
+        maxOutputTokens,
         responseMimeType: 'application/json',
         responseSchema: RESPONSE_SCHEMA,
+        thinkingConfig: { thinkingBudget },
       },
-    };
-    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    const timeoutId = this.timeoutMs && controller ? setTimeout(() => controller.abort(), this.timeoutMs) : null;
-    try {
-      const requestOptions = {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-        signal: controller?.signal,
-      };
-      const response = await this.fetchImpl(url, requestOptions);
-      const duration = (performance.now?.() ?? Date.now()) - startedAt;
-      console.debug('[CalorieCam] Gemini HTTP response', { status: response.status, ms: Math.round(duration) });
-      if (!response.ok) {
-        const textBody = typeof response.text === 'function' ? await response.text().catch(() => '') : '';
-        const error = new Error('ESTIMATION_HTTP_ERROR');
-        error.status = response.status;
-        error.code = 'HTTP';
-        error.details = textBody?.slice(0, 500) || '';
-        console.error('[CalorieCam] Gemini HTTP error', { status: error.status, details: error.details });
-        throw error;
-      }
-      const json = await response.json();
-      const finishReason = json?.candidates?.[0]?.finishReason;
-      const usage = json?.usageMetadata;
-      const text = extractText(json);
-      if (!text) {
-        const diag = {
-          finishReason,
-          promptFeedback: json?.promptFeedback,
-          usage: usage
-            ? {
-                prompt: usage?.promptTokenCount,
-                candidates: usage?.candidatesTokenCount,
-                total: usage?.totalTokenCount,
-                thoughts: usage?.thoughtsTokenCount,
-              }
-            : undefined,
-        };
-        console.warn('[CalorieCam] Empty Gemini response', diag);
-        const e = new Error('ESTIMATION_EMPTY_RESPONSE');
-        e.code = 'EMPTY';
-        e.details = JSON.stringify(diag).slice(0, 500);
-        throw e;
-      }
+    });
+
+    const runOnce = async () => {
+      const startedAt = performance.now?.() ?? Date.now();
+      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const timeoutId = this.timeoutMs && controller ? setTimeout(() => controller.abort(), this.timeoutMs) : null;
       try {
-        const parsed = JSON.parse(text);
-        return parseEstimationResponse(parsed);
-      } catch (cause) {
-        const e = new Error('ESTIMATION_SCHEMA_ERROR');
-        e.code = 'SCHEMA';
-        e.cause = cause;
-        throw e;
+        const requestOptions = {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(buildPayload()),
+          signal: controller?.signal,
+        };
+        const response = await this.fetchImpl(url, requestOptions);
+        const duration = (performance.now?.() ?? Date.now()) - startedAt;
+        console.debug('[CalorieCam] Gemini HTTP response', { status: response.status, ms: Math.round(duration) });
+        if (!response.ok) {
+          const textBody = typeof response.text === 'function' ? await response.text().catch(() => '') : '';
+          const error = new Error('ESTIMATION_HTTP_ERROR');
+          error.status = response.status;
+          error.code = 'HTTP';
+          error.details = textBody?.slice(0, 500) || '';
+          console.error('[CalorieCam] Gemini HTTP error', { status: error.status, details: error.details });
+          throw error;
+        }
+        const json = await response.json();
+        const finishReason = json?.candidates?.[0]?.finishReason;
+        const usage = json?.usageMetadata;
+        const text = extractText(json);
+        if (!text) {
+          const diag = {
+            finishReason,
+            promptFeedback: json?.promptFeedback,
+            usage: usage
+              ? {
+                  prompt: usage?.promptTokenCount,
+                  candidates: usage?.candidatesTokenCount,
+                  total: usage?.totalTokenCount,
+                  thoughts: usage?.thoughtsTokenCount,
+                }
+              : undefined,
+          };
+          console.warn('[CalorieCam] Empty Gemini response', diag);
+          const e = new Error('ESTIMATION_EMPTY_RESPONSE');
+          e.code = 'EMPTY';
+          e.details = JSON.stringify(diag).slice(0, 500);
+          // Use error object to signal retry decision to caller
+          e._finishReason = finishReason;
+          e._usage = diag.usage;
+          throw e;
+        }
+        try {
+          const parsed = JSON.parse(text);
+          return parseEstimationResponse(parsed);
+        } catch (cause) {
+          const e = new Error('ESTIMATION_SCHEMA_ERROR');
+          e.code = 'SCHEMA';
+          e.cause = cause;
+          throw e;
+        }
+      } catch (err) {
+        if (err?.name === 'AbortError') {
+          const e = new Error('ESTIMATION_TIMEOUT');
+          e.code = 'TIMEOUT';
+          throw e;
+        }
+        throw err;
+      } finally {
+        if (timeoutId) clearTimeout(timeoutId);
       }
+    };
+
+    try {
+      return await runOnce();
     } catch (err) {
-      if (err?.name === 'AbortError') {
-        const e = new Error('ESTIMATION_TIMEOUT');
-        e.code = 'TIMEOUT';
-        throw e;
+      // One controlled retry for truncation/empty responses, adjusting budgets
+      const isTruncation = err?.code === 'EMPTY' && (err?._finishReason === 'MAX_TOKENS' || !err?._finishReason);
+      if (!didRetry && isTruncation) {
+        didRetry = true;
+        // increase output tokens and reduce thinking budget a bit (but keep > 0)
+        maxOutputTokens = Math.min(4096, maxOutputTokens + 1024);
+        thinkingBudget = Math.max(32, Math.floor(thinkingBudget / 2));
+        return await runOnce();
       }
-      throw err;
-    } finally {
-      if (timeoutId) clearTimeout(timeoutId);
+      if (err?.message === 'ESTIMATION_EMPTY_RESPONSE' || err?.code === 'EMPTY') {
+        throw err;
+      }
+      if (err?.message === 'ESTIMATION_HTTP_ERROR' || err?.code === 'HTTP') {
+        throw err;
+      }
+      if (err?.message === 'ESTIMATION_SCHEMA_ERROR' || err?.code === 'SCHEMA') {
+        throw err;
+      }
+      // Re-throw unknowns as NETWORK for clarity
+      const e = new Error('ESTIMATION_NETWORK_ERROR');
+      e.code = 'NETWORK';
+      e.cause = err;
+      throw e;
     }
   }
 
