@@ -29,11 +29,24 @@
       .item-card.excluded { opacity: 0.6; }
       .bbox-toggle { margin-bottom: 0.5rem; }
       .range-badge { background: var(--primary); color: #fff; padding: 0.25rem 0.75rem; border-radius: 999px; }
-      #canvas-wrapper { position: relative; border: 1px solid var(--muted-border-color); border-radius: 0.75rem; overflow: hidden; box-shadow: 0 .5rem 1rem rgba(0,0,0,0.05); }
+      #canvas-wrapper {
+        position: relative;
+        border: 1px solid var(--muted-border-color);
+        border-radius: 0.75rem;
+        overflow: hidden;
+        box-shadow: 0 .5rem 1rem rgba(0,0,0,0.05);
+        max-width: 100%;
+        header.hero { padding: 0.9rem; }
+      #result-canvas { width: 100%; height: auto; display: block; }
       #canvas-overlay { position: absolute; inset: 0; pointer-events: none; font-size: 0.75rem; color: #fff; }
       #canvas-overlay .box { position: absolute; border: 2px solid rgba(0,102,255,0.85); border-radius: 0.5rem; padding: 0.25rem; background: rgba(0,102,255,0.35); }
       .logs { max-height: 200px; overflow-y: auto; border: 1px solid var(--muted-border-color); padding: 0.75rem; border-radius: 0.75rem; font-family: var(--font-monospace); }
       mark { background: rgba(255, 230, 150, 0.8); }
+      @media (max-width: 640px) {
+        header.hero { padding: .9rem; }
+        .history-grid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+        .tab-nav { justify-content: center; }
+      }
     </style>
   </head>
   <body>
