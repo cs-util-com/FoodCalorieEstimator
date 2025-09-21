@@ -7,46 +7,165 @@
   <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@2/css/pico.min.css" />
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%230066ff' d='M3 5h18v14H3z'/%3E%3Crect x='6' y='8' width='12' height='8' fill='%23fff'/%3E%3Ccircle cx='12' cy='12' r='2' fill='%230066ff'/%3E%3C/svg%3E" type="image/svg+xml" />
     <style>
-      /* Lean custom styles: Pico provides the rest */
-      body { min-height: 100vh; background: radial-gradient(circle at top, #f5f7ff, #ffffff 55%); }
-      header.hero { background: linear-gradient(135deg, rgba(14,165,233,0.08), rgba(99,102,241,0.08)); border: 1px solid var(--muted-border-color); padding: 1.25rem 1.25rem; border-radius: 1rem; }
-      header.hero h1 { margin: 0 0 .25rem; }
-      header.hero .lead { margin: 0; }
-      .tab-nav { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-      .tab-nav { background: rgba(0,0,0,0.03); padding: .35rem; border: 1px solid var(--muted-border-color); border-radius: 999px; }
-      .tab-nav button { border-radius: 999px; border: 1px solid transparent; }
-      .tab-nav button[aria-current='page'] { background: var(--primary); color: #fff; }
-      .tab-nav button:not([aria-current='page']):hover { border-color: var(--muted-border-color); background: rgba(0,0,0,0.02); }
+      :root {
+        --primary: #0066ff;
+        --contrast: #ffffff;
+        --border-radius: 1rem;
+        --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      }
+      body {
+        background: #f8f9fa;
+        font-family: var(--font-sans);
+        color: #343a40;
+      }
+      .container {
+        max-width: 800px;
+        padding: 1rem;
+      }
+      .hero {
+        background: linear-gradient(135deg, rgba(0, 102, 255, 0.05), rgba(0, 82, 204, 0.05));
+        border: 1px solid #e9ecef;
+        padding: 2rem;
+        border-radius: var(--border-radius);
+        text-align: center;
+        margin-bottom: 1.5rem;
+      }
+      .hero h1 {
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+      }
+      .hero .lead {
+        color: #6c757d;
+        font-size: 1.1rem;
+      }
+      .tab-nav {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+        border-bottom: 1px solid #dee2e6;
+      }
+      .tab-nav button {
+        border: none;
+        background: none;
+        padding: 0.75rem 1rem;
+        font-weight: 500;
+        color: #6c757d;
+        border-bottom: 2px solid transparent;
+        transition: all 0.2s ease;
+      }
+      .tab-nav button:hover {
+        color: #0056b3;
+      }
+      .tab-nav button[aria-current='page'] {
+        color: var(--primary);
+        border-bottom-color: var(--primary);
+      }
       .view { display: none; }
       .view.is-active { display: block; }
-      .view > article { background: #fff; border: 1px solid var(--muted-border-color); border-radius: 1rem; padding: 1.25rem; box-shadow: 0 .5rem 1.25rem rgba(0,0,0,0.04); }
-      .history-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; }
-      .thumbnail { position: relative; overflow: hidden; border-radius: 0.75rem; box-shadow: 0 0.5rem 1.25rem rgba(0,0,0,0.06); transition: transform .15s ease, box-shadow .15s ease; }
-      .thumbnail:hover { transform: translateY(-2px); box-shadow: 0 .75rem 1.5rem rgba(0,0,0,0.08); }
-      .thumbnail img { width: 100%; height: 160px; object-fit: cover; }
-      .thumbnail span { position: absolute; bottom: 0.5rem; left: 0.5rem; background: rgba(0,0,0,0.65); color: #fff; padding: 0.25rem 0.5rem; border-radius: 0.5rem; font-size: 0.8rem; }
-      .item-card { border: 1px solid var(--muted-border-color); border-radius: 0.75rem; padding: 1rem; margin-bottom: 1rem; background: #fff; }
-      .item-card.excluded { opacity: 0.6; }
-      .bbox-toggle { margin-bottom: 0.5rem; }
-      .range-badge { background: var(--primary); color: #fff; padding: 0.25rem 0.75rem; border-radius: 999px; }
+      article {
+        background: #fff;
+        border: 1px solid #e9ecef;
+        border-radius: var(--border-radius);
+        padding: 1.5rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+      }
+      article header { margin-bottom: 1.5rem; }
+      article h2 { font-size: 1.5rem; font-weight: 600; }
+      .grid { display: grid; gap: 1rem; }
+      @media (min-width: 768px) {
+        .grid { grid-template-columns: repeat(2, 1fr); }
+      }
+      #settings-form .grid { grid-template-columns: 1fr; }
+       @media (min-width: 768px) {
+        #settings-form .grid { grid-template-columns: repeat(2, 1fr); }
+      }
+      .history-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 1rem;
+      }
+      .thumbnail {
+        position: relative;
+        overflow: hidden;
+        border-radius: 0.75rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+      .thumbnail:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.08);
+      }
+      .thumbnail img {
+        width: 100%;
+        height: 150px;
+        object-fit: cover;
+      }
+      .thumbnail span {
+        position: absolute;
+        bottom: 0.5rem;
+        left: 0.5rem;
+        background: rgba(0,0,0,0.7);
+        color: #fff;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.5rem;
+        font-size: 0.8rem;
+      }
+      .item-card {
+        border: 1px solid #e9ecef;
+        border-radius: 0.75rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        background: #fff;
+        transition: opacity 0.2s ease;
+      }
+      .item-card.excluded { opacity: 0.5; }
+      .bbox-toggle { margin: 1rem 0; }
       #canvas-wrapper {
         position: relative;
-        border: 1px solid var(--muted-border-color);
+        border: 1px solid #e9ecef;
         border-radius: 0.75rem;
         overflow: hidden;
-        box-shadow: 0 .5rem 1rem rgba(0,0,0,0.05);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         max-width: 100%;
-        header.hero { padding: 0.9rem; }
+        margin-top: 1rem;
+      }
       #result-canvas { width: 100%; height: auto; display: block; }
       #canvas-overlay { position: absolute; inset: 0; pointer-events: none; font-size: 0.75rem; color: #fff; }
-      #canvas-overlay .box { position: absolute; border: 2px solid rgba(0,102,255,0.85); border-radius: 0.5rem; padding: 0.25rem; background: rgba(0,102,255,0.35); }
-      .logs { max-height: 200px; overflow-y: auto; border: 1px solid var(--muted-border-color); padding: 0.75rem; border-radius: 0.75rem; font-family: var(--font-monospace); }
-      mark { background: rgba(255, 230, 150, 0.8); }
-      @media (max-width: 640px) {
-        header.hero { padding: .9rem; }
-        .history-grid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
-        .tab-nav { justify-content: center; }
+      #canvas-overlay .box {
+        position: absolute;
+        border: 2px solid rgba(0, 102, 255, 0.9);
+        border-radius: 0.5rem;
+        background: rgba(0, 102, 255, 0.3);
       }
+      #canvas-overlay .box span {
+        background: rgba(0, 102, 255, 0.9);
+        padding: 0.15rem 0.4rem;
+        border-radius: 0.25rem;
+        font-size: 0.7rem;
+        position: absolute;
+        top: -1.2rem;
+        left: -2px;
+      }
+      .logs {
+        max-height: 250px;
+        overflow-y: auto;
+        background: #212529;
+        color: #f8f9fa;
+        padding: 1rem;
+        border-radius: 0.75rem;
+        font-family: "SF Mono", "Fira Code", "Source Code Pro", monospace;
+        font-size: 0.85rem;
+        margin-top: 1rem;
+      }
+      button, input[type="submit"], input[type="button"] {
+        --pico-font-weight: 500;
+      }
+      button.contrast {
+        --pico-color: var(--contrast);
+        --pico-background-color: var(--primary);
+      }
+      footer { margin-top: 1.5rem; }
+      hr { margin: 1.5rem 0; }
     </style>
   </head>
   <body>
@@ -61,145 +180,161 @@
         <button id="settings-tab" class="secondary" data-tab="settings">Settings</button>
       </nav>
 
-      <section id="camera-view" class="view is-active" aria-labelledby="camera-tab">
-        <article>
-          <header>
-            <h2>Capture</h2>
-            <p>Select or take a photo to estimate calories. Try the demo image to explore without a key.</p>
-          </header>
-          <div class="grid">
-            <label>
-              <span>Upload image</span>
-              <input id="file-input" type="file" accept="image/*" capture />
-            </label>
-            <button id="demo-button" class="contrast" type="button">Run demo image</button>
-          </div>
-          <div class="bbox-toggle">
-            <label>
-              <input type="checkbox" id="toggle-boxes" />
-              <span>Show bounding boxes</span>
-            </label>
-          </div>
-          <div id="capture-status" role="status" aria-live="polite"></div>
-          <div id="canvas-wrapper" hidden>
-            <canvas id="result-canvas" width="640" height="480"></canvas>
-            <div id="canvas-overlay"></div>
-          </div>
-        </article>
-      </section>
+      <div id="views">
+        <section id="camera-view" class="view is-active" aria-labelledby="camera-tab">
+          <article>
+            <header>
+              <h2>Capture</h2>
+              <p>Select or take a photo to estimate calories. Try the demo image to explore without a key.</p>
+            </header>
+            <div class="grid">
+              <label>
+                <span>Upload image</span>
+                <input id="file-input" type="file" accept="image/*" capture />
+              </label>
+              <button id="demo-button" class="contrast" type="button">Run demo image</button>
+            </div>
+            <div id="capture-status" role="status" aria-live="polite"></div>
+            <div id="canvas-wrapper" hidden>
+              <canvas id="result-canvas" width="640" height="480"></canvas>
+              <div id="canvas-overlay"></div>
+            </div>
+            <div class="bbox-toggle">
+              <label>
+                <input type="checkbox" id="toggle-boxes" />
+                <span>Show bounding boxes</span>
+              </label>
+            </div>
+          </article>
+        </section>
 
-      <section id="result-view" class="view" aria-live="polite" aria-labelledby="camera-tab">
-        <article>
-          <header>
-            <h2>Result</h2>
-            <p id="result-summary"></p>
-            <small id="result-note" class="muted"></small>
-          </header>
-          <div id="items-list"></div>
-          <footer class="grid">
-            <button id="add-item" type="button">Add item</button>
-            <button id="save-meal" class="contrast" type="button">Save meal</button>
-          </footer>
-          <form id="add-item-form" hidden>
-            <fieldset>
-              <legend>Add manual item</legend>
-              <label> Name <input name="name" required /> </label>
-              <label> kcal <input name="kcal" type="number" min="0" step="1" required /></label>
-              <label> Confidence <input name="confidence" type="number" min="0" max="1" step="0.01" value="0.5" /></label>
-              <button type="submit">Add</button>
-            </fieldset>
-          </form>
-        </article>
-      </section>
+        <section id="result-view" class="view" aria-live="polite" aria-labelledby="camera-tab">
+          <article>
+            <header>
+              <hgroup>
+                <h2>Result</h2>
+                <p id="result-summary"></p>
+              </hgroup>
+              <small id="result-note" class="muted"></small>
+            </header>
+            <div id="items-list"></div>
+            <form id="add-item-form" hidden>
+              <fieldset>
+                <legend>Add manual item</legend>
+                <div class="grid">
+                  <label> Name <input name="name" required /> </label>
+                  <label> kcal <input name="kcal" type="number" min="0" step="1" required /></label>
+                  <label> Confidence <input name="confidence" type="number" min="0" max="1" step="0.01" value="0.5" /></label>
+                </div>
+                <button type="submit">Add</button>
+              </fieldset>
+            </form>
+            <footer class="grid">
+              <button id="add-item" type="button">Add item</button>
+              <button id="save-meal" class="contrast" type="button">Save meal</button>
+            </footer>
+          </article>
+        </section>
 
-      <section id="history-view" class="view" aria-labelledby="history-tab">
-        <article>
-          <header>
-            <h2>History</h2>
-            <p>Saved meals stay on this device. Search item names to filter.</p>
-          </header>
-          <input id="history-search" type="search" placeholder="Search meals" />
-          <div id="history-grid" class="history-grid"></div>
-        </article>
-      </section>
+        <section id="history-view" class="view" aria-labelledby="history-tab">
+          <article>
+            <header>
+              <h2>History</h2>
+              <p>Saved meals stay on this device. Search item names to filter.</p>
+            </header>
+            <input id="history-search" type="search" placeholder="Search meals" />
+            <div id="history-grid" class="history-grid"></div>
+          </article>
+        </section>
 
-      <section id="detail-view" class="view" aria-labelledby="history-tab">
-        <article>
-          <header>
-            <h2>Meal detail</h2>
-            <p id="detail-summary"></p>
-            <small id="detail-note" class="muted"></small>
-          </header>
-          <div class="grid">
-            <button id="detail-export" type="button">Export CSV</button>
-            <button id="detail-delete" class="secondary" type="button">Delete</button>
-            <button id="detail-close" type="button">Close</button>
-          </div>
-          <div id="detail-items"></div>
-          <footer class="grid">
-            <button id="detail-add-item" type="button">Add item</button>
-            <button id="detail-save" class="contrast" type="button">Save changes</button>
-          </footer>
-          <form id="detail-add-item-form" hidden>
-            <fieldset>
-              <legend>Add manual item</legend>
-              <label> Name <input name="name" required /></label>
-              <label> kcal <input name="kcal" type="number" min="0" step="1" required /></label>
-              <label> Confidence <input name="confidence" type="number" min="0" max="1" step="0.01" value="0.5" /></label>
-              <button type="submit">Add</button>
-            </fieldset>
-          </form>
-        </article>
-      </section>
+        <section id="detail-view" class="view" aria-labelledby="history-tab">
+          <article>
+            <header>
+              <hgroup>
+                <h2>Meal detail</h2>
+                <p id="detail-summary"></p>
+              </hgroup>
+              <small id="detail-note" class="muted"></small>
+            </header>
+            <div id="detail-items"></div>
+            <form id="detail-add-item-form" hidden>
+              <fieldset>
+                <legend>Add manual item</legend>
+                <div class="grid">
+                  <label> Name <input name="name" required /> </label>
+                  <label> kcal <input name="kcal" type="number" min="0" step="1" required /></label>
+                  <label> Confidence <input name="confidence" type="number" min="0" max="1" step="0.01" value="0.5" /></label>
+                </div>
+                <button type="submit">Add</button>
+              </fieldset>
+            </form>
+            <footer class="grid">
+              <button id="detail-add-item" type="button">Add item</button>
+              <button id="detail-save" class="contrast" type="button">Save changes</button>
+            </footer>
+            <hr />
+            <div class="grid">
+              <button id="detail-export" type="button">Export CSV</button>
+              <button id="detail-delete" class="secondary" type="button">Delete</button>
+              <button id="detail-close" type="button">Close</button>
+            </div>
+          </article>
+        </section>
 
-      <section id="settings-view" class="view" aria-labelledby="settings-tab">
-        <article>
-          <header>
-            <h2>Settings</h2>
-          </header>
-          <form id="settings-form" class="grid">
-            <label> Gemini API key <input name="apiKey" type="password" autocomplete="off" placeholder="AIza..." /></label>
-            <label>
-              Model variant
-              <select name="modelVariant">
-                <option value="flash">Gemini 2.5 Flash</option>
-                <option value="pro">Gemini 2.5 Pro</option>
-              </select>
-            </label>
-            <label>
-              Preprocess size (px)
-              <select name="preprocessSize">
-                <option value="1024">1024</option>
-                <option value="1536">1536</option>
-              </select>
-            </label>
-            <label>
-              Units
-              <select name="units">
-                <option value="kcal">kcal</option>
-                <option value="kJ">kJ</option>
-              </select>
-            </label>
-            <label>
-              Default bounding boxes
-              <input type="checkbox" name="defaultShowBoxes" />
-            </label>
-            <label>
-              Confidence threshold
-              <input type="range" name="confidenceThreshold" min="0" max="1" step="0.05" />
-            </label>
-            <button type="submit" class="contrast">Save settings</button>
-          </form>
-          <div class="grid">
-            <button id="logs-toggle" type="button">Show logs</button>
-            <button id="wipe-data" class="secondary" type="button">Wipe all data</button>
-          </div>
-          <pre id="logs" class="logs" hidden></pre>
-          <footer>
-            <a href="pages/about.html" id="about-link">About &amp; disclaimers</a>
-          </footer>
-        </article>
-      </section>
+        <section id="settings-view" class="view" aria-labelledby="settings-tab">
+          <article>
+            <header>
+              <h2>Settings</h2>
+            </header>
+            <form id="settings-form">
+              <label> Gemini API key <input name="apiKey" type="password" autocomplete="off" placeholder="AIza..." /></label>
+              <div class="grid">
+                <label>
+                  Model variant
+                  <select name="modelVariant">
+                    <option value="flash">Gemini 2.5 Flash</option>
+                    <option value="pro">Gemini 2.5 Pro</option>
+                  </select>
+                </label>
+                <label>
+                  Preprocess size (px)
+                  <select name="preprocessSize">
+                    <option value="1024">1024</option>
+                    <option value="1536">1536</option>
+                  </select>
+                </label>
+              </div>
+              <div class="grid">
+                <label>
+                  Units
+                  <select name="units">
+                    <option value="kcal">kcal</option>
+                    <option value="kJ">kJ</option>
+                  </select>
+                </label>
+                <label>
+                  Confidence threshold
+                  <input type="range" name="confidenceThreshold" min="0" max="1" step="0.05" />
+                </label>
+              </div>
+              <label>
+                <input type="checkbox" name="defaultShowBoxes" />
+                Default bounding boxes
+              </label>
+              <button type="submit" class="contrast">Save settings</button>
+            </form>
+            <hr />
+            <div class="grid">
+              <button id="logs-toggle" type="button">Show logs</button>
+              <button id="wipe-data" class="secondary" type="button">Wipe all data</button>
+            </div>
+            <pre id="logs" class="logs" hidden></pre>
+            <footer>
+              <a href="pages/about.html" id="about-link">About &amp; disclaimers</a>
+            </footer>
+          </article>
+        </section>
+      </div>
     </main>
     <dialog id="notification-dialog"></dialog>
     <script type="module" src="./src/index.js"></script>
