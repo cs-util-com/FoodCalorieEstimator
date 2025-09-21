@@ -9,7 +9,7 @@ const preprocessService = new PreprocessService();
 const estimationService = new EstimationService({ maxSchemaRetries: 1 });
 const storageService = new StorageService();
 
-document.addEventListener('DOMContentLoaded', () => {
+function bootstrap() {
   const app = new App({
     store,
     preprocessService,
@@ -18,4 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     root: document,
   });
   app.init();
-});
+}
+
+// Initialize when DOM is ready (module scripts execute before DOMContentLoaded)
+document.addEventListener('DOMContentLoaded', bootstrap, { once: true });

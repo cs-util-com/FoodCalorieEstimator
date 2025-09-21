@@ -155,6 +155,8 @@ export class App {
     this.elements.fileInput.addEventListener('change', (event) => {
       const file = event.target.files?.[0];
       if (file) {
+        console.log('[CalorieCam] File selected:', { name: file.name, size: file.size, type: file.type });
+        this.store.dispatch(actions.addLog(`File selected: ${file.name} (${Math.round(file.size / 1024)} KB)`, 'info'));
         this.handleFile(file);
       }
     });
@@ -163,6 +165,7 @@ export class App {
 
     this.elements.toggleBoxes.addEventListener('change', (event) => {
       this.store.dispatch(actions.setShowBoxes(event.target.checked));
+      this.store.dispatch(actions.addLog(`Show boxes: ${event.target.checked}`, 'info'));
       this.renderCanvas();
     });
 
@@ -289,15 +292,25 @@ export class App {
     this.store.dispatch(actions.captureStart(file));
     const settings = selectors.settings(this.store.getState());
     try {
+      this.store.dispatch(actions.addLog('Preprocess: start', 'info'));
+      console.log('[CalorieCam] Preprocess started');
       const preprocess = await this.preprocessService.preprocess(file);
       this.store.dispatch(actions.captureDone(preprocess));
       this.currentImage = { blob: preprocess.normalizedBlob, width: preprocess.width, height: preprocess.height };
+      this.store.dispatch(actions.addLog(`Preprocess: done (${preprocess.width}x${preprocess.height})`, 'info'));
+      console.log('[CalorieCam] Preprocess done', {
+        width: preprocess.width,
+        height: preprocess.height,
+        blobType: preprocess.normalizedBlob?.type,
+      });
       this.renderCanvas();
       if (!settings.apiKey) {
         this.store.dispatch(actions.estimationFailure('API key required for estimation.')); 
         this.toast('Add your Gemini API key in Settings to run real estimations.');
         return;
       }
+      this.store.dispatch(actions.addLog('Estimation: start (Gemini)', 'info'));
+      console.log('[CalorieCam] Estimation starting with Gemini');
       await this.estimate(preprocess.normalizedBlob, settings);
     } catch (error) {
       console.error(error);
@@ -317,12 +330,14 @@ export class App {
       });
       this.store.dispatch(actions.estimationSuccess(payload));
       this.store.dispatch(actions.addLog('Estimation completed', 'info'));
+      console.log('[CalorieCam] Estimation success', payload);
       this.renderCanvas();
       this.store.dispatch(actions.setActiveTab('camera'));
       this.showResult();
     } catch (error) {
       this.store.dispatch(actions.estimationFailure(error.message));
       this.store.dispatch(actions.addLog(`Estimation error: ${error.message}`, 'error'));
+      console.error('[CalorieCam] Estimation error', error);
       this.toast('Gemini request failed. Check your key or try again.');
     }
   }
@@ -638,12 +653,12 @@ export class App {
 
   renderCanvas() {
     const estimation = selectors.estimationData(this.store.getState());
-    if (!estimation || !this.currentImage) {
+    if (!this.currentImage) {
       this.imageCanvas.render({ blob: null, width: 0, height: 0, items: [], showBoxes: false });
       return;
     }
-    const showBoxes = selectors.showBoxes(this.store.getState());
-    const items = estimation.items.map((item) => ({ ...item, bbox: item.bbox }));
+    const showBoxes = estimation ? selectors.showBoxes(this.store.getState()) : false;
+    const items = estimation ? estimation.items.map((item) => ({ ...item, bbox: item.bbox })) : [];
     this.imageCanvas.render({
       blob: this.currentImage.blob,
       width: this.currentImage.width,

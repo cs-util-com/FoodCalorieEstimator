@@ -69,7 +69,7 @@ describe('PreprocessService', () => {
     const objectUrls = [];
     global.URL = {
       ...originalURL,
-      createObjectURL: (blob) => {
+      createObjectURL: () => {
         const u = `blob:mock:${objectUrls.length + 1}`;
         objectUrls.push(u);
         return u;
