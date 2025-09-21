@@ -37,17 +37,14 @@ const RESPONSE_SCHEMA = {
               w: { type: 'integer' },
               h: { type: 'integer' },
             },
-            additionalProperties: false,
           },
           notes: { type: 'string' },
         },
         required: ['name', 'kcal', 'confidence'],
-        additionalProperties: true,
       },
     },
   },
   required: ['version', 'model_id', 'meal_confidence', 'total_kcal', 'items'],
-  additionalProperties: true,
 };
 
 async function blobToBase64(blob) {
@@ -128,7 +125,7 @@ export class EstimationService {
         generationConfig: {
           temperature: 0.2,
           topP: 0.9,
-          maxOutputTokens: 900,
+          maxOutputTokens: useFallback ? 1500 : 900,
           responseMimeType: 'application/json',
           ...(useFallback ? {} : { responseSchema: RESPONSE_SCHEMA }),
         },
