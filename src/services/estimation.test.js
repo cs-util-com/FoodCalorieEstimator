@@ -43,33 +43,15 @@ describe('EstimationService', () => {
     expect(result.total_kcal).toBe(500);
   });
 
-  test('retries once on schema violation', async () => {
-    // Why: Matches the spec requirement to retry on malformed responses once.
-    const fetchImpl = jest
-      .fn()
-      .mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ candidates: [{ content: { parts: [{ text: '{"oops": true}' }] } }] }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            candidates: [
-              {
-                content: {
-                  parts: [{ text: JSON.stringify(SAMPLE_RESPONSE) }],
-                },
-              },
-            ],
-          }),
-      });
-
-    const service = new EstimationService({ fetchImpl, maxSchemaRetries: 1 });
-    const blob = createFakeBlob();
-    const result = await service.estimate({ imageBlob: blob, apiKey: 'abc123' });
-    expect(result.items[0].name).toBe('Pasta');
-    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  test('surfaces schema error on malformed JSON without retry', async () => {
+    // Why: With simplified logic, malformed responses throw a schema error immediately.
+    const fetchImpl = jest.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ candidates: [{ content: { parts: [{ text: '{"oops": true}' }] } }] }),
+    });
+    const service = new EstimationService({ fetchImpl });
+    await expect(service.estimate({ imageBlob: createFakeBlob(), apiKey: 'abc123' })).rejects.toThrow('ESTIMATION_SCHEMA_ERROR');
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 
   test('throws when API key missing', async () => {
@@ -85,21 +67,10 @@ describe('EstimationService', () => {
     await expect(service.estimate({ imageBlob: createFakeBlob(), apiKey: 'key' })).rejects.toThrow('ESTIMATION_HTTP_ERROR');
   });
 
-  test('fails after exceeding schema retries', async () => {
-    // Why: After retrying once the service surfaces a schema error for logging.
-    const fetchImpl = jest.fn(() =>
-      Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({ candidates: [{ content: { parts: [{ text: '{"oops": true}' }] } }] }),
-      }),
-    );
-    const service = new EstimationService({ fetchImpl, maxSchemaRetries: 1 });
-    await expect(service.estimate({ imageBlob: createFakeBlob(), apiKey: 'key' })).rejects.toThrow('ESTIMATION_SCHEMA_ERROR');
-    expect(fetchImpl).toHaveBeenCalledTimes(2);
-  });
+  // Removed retries: no separate test for exceeding retries; schema error occurs on first attempt.
 
-  test('retries with compact prompt on MAX_TOKENS empty response', async () => {
-    // Why: Ensures we handle empty text with finishReason=MAX_TOKENS by retrying with more tokens and compact prompt.
+  test('throws EMPTY on MAX_TOKENS empty response without retry', async () => {
+    // Why: Simplified service surfaces empty response as an error immediately.
     const emptyWithMaxTokens = {
       candidates: [
         {
@@ -114,20 +85,9 @@ describe('EstimationService', () => {
         thoughtsTokenCount: 100,
       },
     };
-    const okWithJson = {
-      candidates: [
-        {
-          content: { parts: [{ text: JSON.stringify(SAMPLE_RESPONSE) }] },
-        },
-      ],
-    };
-    const fetchImpl = jest.fn()
-      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(emptyWithMaxTokens) })
-      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(okWithJson) });
-    const service = new EstimationService({ fetchImpl, maxSchemaRetries: 1 });
-    const blob = createFakeBlob();
-    const result = await service.estimate({ imageBlob: blob, apiKey: 'key' });
-    expect(result.version).toBe('1.1');
-    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    const fetchImpl = jest.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve(emptyWithMaxTokens) });
+    const service = new EstimationService({ fetchImpl });
+    await expect(service.estimate({ imageBlob: createFakeBlob(), apiKey: 'key' })).rejects.toThrow('ESTIMATION_EMPTY_RESPONSE');
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 });
