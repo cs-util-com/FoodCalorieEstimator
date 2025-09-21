@@ -37,15 +37,23 @@ export class ImageCanvas {
     if (!showBoxes) {
       return;
     }
+    // Map canvas internal coordinates to CSS pixels (overlay uses CSS pixels)
+    const cssScaleX = (this.canvas.clientWidth || this.canvas.width) / this.canvas.width;
+    const cssScaleY = (this.canvas.clientHeight || this.canvas.height) / this.canvas.height;
+    const cssDrawWidth = drawWidth * cssScaleX;
+    const cssDrawHeight = drawHeight * cssScaleY;
+    const cssOffsetX = offsetX * cssScaleX;
+    const cssOffsetY = offsetY * cssScaleY;
+
     items
       .filter((item) => item.bbox)
       .forEach((item) => {
-        const scaled = scaleBox(item.bbox, drawWidth, drawHeight);
+        const scaled = scaleBox(item.bbox, cssDrawWidth, cssDrawHeight);
         if (!scaled) return;
         const box = document.createElement('div');
         box.className = 'box';
-        box.style.left = `${scaled.x + offsetX}px`;
-        box.style.top = `${scaled.y + offsetY}px`;
+        box.style.left = `${scaled.x + cssOffsetX}px`;
+        box.style.top = `${scaled.y + cssOffsetY}px`;
         box.style.width = `${scaled.w}px`;
         box.style.height = `${scaled.h}px`;
         box.textContent = `${item.name} (${Math.round(item.confidence * 100)}%)`;

@@ -41,4 +41,37 @@ describe('ImageCanvas', () => {
     expect(drawImage).toHaveBeenCalled();
     expect(overlay.children).toHaveLength(1);
   });
+
+  test('positions boxes using CSS-scaled canvas size', async () => {
+    // Why: The canvas is displayed at CSS size differing from its internal buffer.
+    const drawImage = jest.fn();
+    const clearRect = jest.fn();
+    const overlay = document.createElement('div');
+    const canvas = {
+      width: 640,
+      height: 480,
+      clientWidth: 320, // CSS downscaled by 0.5
+      clientHeight: 240,
+      getContext: () => ({ drawImage, clearRect }),
+    };
+    const widget = new ImageCanvas(canvas, overlay);
+    const blob = new Blob(['x']);
+
+    await widget.render({
+      blob,
+      width: 1000,
+      height: 800,
+      items: [{ name: 'Item', confidence: 0.5, bbox: { x: 100, y: 100, w: 200, h: 200 } }],
+      showBoxes: true,
+    });
+
+    // Because 1000x800 (5:4) into 640x480 (4:3) is height-constrained (scale=0.6),
+    // the drawn width is 600 with 20px internal letterbox on each side.
+    // CSS scale is 0.5, so box dimensions map accordingly.
+    const box = overlay.children[0];
+    // width = 0.2 * (drawWidth=600) * cssScale(0.5) = 60px
+    expect(box.style.width).toBe(`60px`);
+    // height = 0.2 * (drawHeight=480) * cssScale(0.5) = 48px
+    expect(box.style.height).toBe(`48px`);
+  });
 });
