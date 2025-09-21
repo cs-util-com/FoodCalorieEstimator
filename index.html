@@ -9,19 +9,27 @@
     <style>
       /* Lean custom styles: Pico provides the rest */
       body { min-height: 100vh; background: radial-gradient(circle at top, #f5f7ff, #ffffff 55%); }
+      header.hero { background: linear-gradient(135deg, rgba(14,165,233,0.08), rgba(99,102,241,0.08)); border: 1px solid var(--muted-border-color); padding: 1.25rem 1.25rem; border-radius: 1rem; }
+      header.hero h1 { margin: 0 0 .25rem; }
+      header.hero .lead { margin: 0; }
       .tab-nav { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+      .tab-nav { background: rgba(0,0,0,0.03); padding: .35rem; border: 1px solid var(--muted-border-color); border-radius: 999px; }
+      .tab-nav button { border-radius: 999px; border: 1px solid transparent; }
       .tab-nav button[aria-current='page'] { background: var(--primary); color: #fff; }
+      .tab-nav button:not([aria-current='page']):hover { border-color: var(--muted-border-color); background: rgba(0,0,0,0.02); }
       .view { display: none; }
       .view.is-active { display: block; }
+      .view > article { background: #fff; border: 1px solid var(--muted-border-color); border-radius: 1rem; padding: 1.25rem; box-shadow: 0 .5rem 1.25rem rgba(0,0,0,0.04); }
       .history-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; }
-      .thumbnail { position: relative; overflow: hidden; border-radius: 0.75rem; box-shadow: 0 0.5rem 1.25rem rgba(0,0,0,0.06); }
+      .thumbnail { position: relative; overflow: hidden; border-radius: 0.75rem; box-shadow: 0 0.5rem 1.25rem rgba(0,0,0,0.06); transition: transform .15s ease, box-shadow .15s ease; }
+      .thumbnail:hover { transform: translateY(-2px); box-shadow: 0 .75rem 1.5rem rgba(0,0,0,0.08); }
       .thumbnail img { width: 100%; height: 160px; object-fit: cover; }
       .thumbnail span { position: absolute; bottom: 0.5rem; left: 0.5rem; background: rgba(0,0,0,0.65); color: #fff; padding: 0.25rem 0.5rem; border-radius: 0.5rem; font-size: 0.8rem; }
-      .item-card { border: 1px solid var(--muted-border-color); border-radius: 0.75rem; padding: 1rem; margin-bottom: 1rem; }
+      .item-card { border: 1px solid var(--muted-border-color); border-radius: 0.75rem; padding: 1rem; margin-bottom: 1rem; background: #fff; }
       .item-card.excluded { opacity: 0.6; }
       .bbox-toggle { margin-bottom: 0.5rem; }
       .range-badge { background: var(--primary); color: #fff; padding: 0.25rem 0.75rem; border-radius: 999px; }
-      #canvas-wrapper { position: relative; }
+      #canvas-wrapper { position: relative; border: 1px solid var(--muted-border-color); border-radius: 0.75rem; overflow: hidden; box-shadow: 0 .5rem 1rem rgba(0,0,0,0.05); }
       #canvas-overlay { position: absolute; inset: 0; pointer-events: none; font-size: 0.75rem; color: #fff; }
       #canvas-overlay .box { position: absolute; border: 2px solid rgba(0,102,255,0.85); border-radius: 0.5rem; padding: 0.25rem; background: rgba(0,102,255,0.35); }
       .logs { max-height: 200px; overflow-y: auto; border: 1px solid var(--muted-border-color); padding: 0.75rem; border-radius: 0.75rem; font-family: var(--font-monospace); }
@@ -30,7 +38,7 @@
   </head>
   <body>
     <main class="container">
-      <header>
+      <header class="hero">
         <h1>CalorieCam</h1>
         <p class="lead">Single-photo calorie estimation with editable results and offline history.</p>
       </header>
