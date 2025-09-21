@@ -46,20 +46,43 @@ const RESPONSE_SCHEMA = {
 };
 
 async function blobToBase64(blob) {
+  // Prefer FileReader for large blobs in browser contexts to avoid building huge strings.
+  if (typeof FileReader !== 'undefined' && typeof Blob !== 'undefined' && blob instanceof Blob) {
+    const dataUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(reader.error || new Error('Failed to read blob'));
+      reader.readAsDataURL(blob);
+    });
+    // dataUrl format: "data:<mime>;base64,<payload>" – we just need the payload
+    const commaIdx = String(dataUrl).indexOf(',');
+    return commaIdx >= 0 ? String(dataUrl).slice(commaIdx + 1) : String(dataUrl);
+  }
+
+  // Fallback for environments without FileReader (e.g., tests/Node):
   const arrayBuffer =
-    typeof blob.arrayBuffer === 'function'
+    typeof blob?.arrayBuffer === 'function'
       ? await blob.arrayBuffer()
       : typeof Response !== 'undefined'
       ? await new Response(blob).arrayBuffer()
       : (() => {
           throw new Error('Unsupported blob conversion');
         })();
-  const bytes = new Uint8Array(arrayBuffer);
-  let binary = '';
-  for (const byte of bytes) {
-    binary += String.fromCharCode(byte);
+
+  // Use Buffer when available to avoid O(n) string concatenation and stack issues
+  if (typeof Buffer !== 'undefined') {
+    return Buffer.from(arrayBuffer).toString('base64');
   }
-  return btoa(binary);
+
+  // Last-resort: chunked binary + btoa to reduce call stack pressure
+  const bytes = new Uint8Array(arrayBuffer);
+  let base64 = '';
+  const chunkSize = 0x8000; // 32KB
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize);
+    base64 += btoa(String.fromCharCode.apply(null, chunk));
+  }
+  return base64;
 }
 
 function extractText(response) {
