@@ -204,7 +204,9 @@
               </label>
               <button id="demo-button" class="contrast" type="button">Run demo image</button>
             </div>
-            <div id="capture-status" role="status" aria-live="polite"></div>
+            <div id="capture-status" role="status" aria-live="polite">
+              <p><progress aria-label="Image processing progress"></progress></p>
+            </div>
             <div id="canvas-wrapper" hidden>
               <canvas id="result-canvas" width="640" height="480"></canvas>
               <div id="canvas-overlay"></div>

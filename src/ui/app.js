@@ -504,23 +504,19 @@ export class App {
   }
 
   renderCamera() {
-    const state = this.store.getState();
-    const capture = state.capture;
-    const estimation = state.estimation;
-    const settings = selectors.settings(state);
-    this.elements.toggleBoxes.checked = state.estimation.showBoxes;
-    if (capture.status === 'processing') {
-      this.elements.captureStatus.textContent = 'Processing image…';
-    } else if (estimation.status === 'processing') {
-      this.elements.captureStatus.textContent = 'Estimating with Gemini…';
-    } else if (estimation.status === 'error') {
-      this.elements.captureStatus.textContent = estimation.error;
-    } else {
-      this.elements.captureStatus.textContent = settings.apiKey
-        ? 'Ready to capture.'
-        : 'Enter your Gemini API key in Settings to enable estimation.';
-    }
+    const status = selectors.captureStatus(this.store.getState());
+    const estimationStatus = selectors.estimationStatus(this.store.getState());
+    const isLoading = status === 'processing' || estimationStatus === 'processing';
+
+    this.elements.captureStatus.innerHTML = isLoading ? '<p><progress></progress></p>' : '';
     this.elements.canvasWrapper.hidden = !this.currentImage;
+  }
+
+  renderCanvas() {
+    const state = this.store.getState();
+    const showBoxes = selectors.showBoxes(state);
+    const items = selectors.estimationData(state)?.items || [];
+    this.imageCanvas.render({ ...this.currentImage, items, showBoxes });
   }
 
   renderEditableItems(container) {
@@ -649,22 +645,5 @@ export class App {
     this.elements.logs.textContent = logs
       .map((entry) => `${new Date(entry.timestamp).toLocaleTimeString()} [${entry.level}] ${entry.message}`)
       .join('\n');
-  }
-
-  renderCanvas() {
-    const estimation = selectors.estimationData(this.store.getState());
-    if (!this.currentImage) {
-      this.imageCanvas.render({ blob: null, width: 0, height: 0, items: [], showBoxes: false });
-      return;
-    }
-    const showBoxes = estimation ? selectors.showBoxes(this.store.getState()) : false;
-    const items = estimation ? estimation.items.map((item) => ({ ...item, bbox: item.bbox })) : [];
-    this.imageCanvas.render({
-      blob: this.currentImage.blob,
-      width: this.currentImage.width,
-      height: this.currentImage.height,
-      items,
-      showBoxes,
-    });
   }
 }
