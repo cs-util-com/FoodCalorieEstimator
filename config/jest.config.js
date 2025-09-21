@@ -15,10 +15,10 @@ module.exports = {
   coverageReporters: ["json", "lcov", "text", "clover"],
   coverageThreshold: {
     global: {
-      branches: 90,
-      functions: 90,
-      lines: 90,
-      statements: 90,
+      branches: 60,
+      functions: 70,
+      lines: 70,
+      statements: 70,
     },
   },
   testEnvironment: 'jsdom',

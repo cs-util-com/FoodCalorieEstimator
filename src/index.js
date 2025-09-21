@@ -1,13 +1,24 @@
-/**
- * PLACEHOLDER ENTRY POINT — KEEP OR REMOVE
- *
- * Note for developers and LLMs:
- * This file is a sample/placeholder entry point used for demos and initial setup.
- * Once real application logic is created, remove this file OR rename it and
- * rewrite its contents completely to reflect the real application entry point.
- *
- * - Remove if not needed.
- * - Or: Rename + fully reimplement before production use.
- */
+import { createStore } from './store/store.js';
+import { PreprocessService } from './services/preprocess.js';
+import { EstimationService } from './services/estimation.js';
+import { StorageService } from './services/storage.js';
+import { App } from './ui/app.js';
 
-console.log("Hello from index.js!");
+const store = createStore();
+const preprocessService = new PreprocessService();
+const estimationService = new EstimationService({ maxSchemaRetries: 1 });
+const storageService = new StorageService();
+
+function bootstrap() {
+  const app = new App({
+    store,
+    preprocessService,
+    estimationService,
+    storageService,
+    root: document,
+  });
+  app.init();
+}
+
+// Initialize when DOM is ready (module scripts execute before DOMContentLoaded)
+document.addEventListener('DOMContentLoaded', bootstrap, { once: true });

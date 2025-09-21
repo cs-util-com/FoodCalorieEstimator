@@ -1,9 +1,0 @@
-{
-    "_comment": "PLACEHOLDER DATA FILE — KEEP OR REMOVE. This is sample/placeholder data used for tests and demos. Once real data structure is defined, remove this file OR rename it and rewrite its contents completely to reflect real data. - Remove if not needed. - Or: Rename + fully reimplement before production use.",
-    "someData": [
-        {
-            "id": "123",
-            "title": "Abc"
-        }
-    ]
-}
