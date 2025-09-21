@@ -1,4 +1,5 @@
 import { actions, createStore, initialState, selectors } from './store.js';
+import { confidenceToRange } from '../utils/range.js';
 
 function buildSampleEstimation() {
   return {
@@ -48,6 +49,31 @@ describe('store reducers', () => {
     const { data } = store.getState().estimation;
     expect(data.itemTotal).toBe(400);
     expect(data.totalsNote.showNote).toBe(true);
+  });
+
+  test('range uses item sum after manual kcal edit', () => {
+    // Why: UI specification says range surrounds sum(items) after edits, not provider total.
+    const store = createStore();
+    store.dispatch(actions.estimationSuccess(buildSampleEstimation()));
+    const firstId = store.getState().estimation.data.items[0].id;
+    store.dispatch(actions.updateKcal(firstId, 400));
+    const { data } = store.getState().estimation;
+    expect(data.itemTotal).toBe(400);
+    expect(data.range).toEqual(confidenceToRange(400, 'high'));
+  });
+
+  test('range updates when removing an included item', () => {
+    // Why: Removing items must immediately reflect in the header range.
+    const store = createStore();
+    store.dispatch(actions.estimationSuccess(buildSampleEstimation()));
+    // Only the high-confidence item is included by default
+    const included = store.getState().estimation.data.items.find((i) => i.included);
+    expect(included).toBeTruthy();
+    // Remove it
+    store.dispatch(actions.removeItem(included.id));
+    const { data } = store.getState().estimation;
+    expect(data.itemTotal).toBe(0);
+    expect(data.range).toEqual(confidenceToRange(0, 'high'));
   });
 
   test('loading a saved meal switches context to history', () => {

@@ -33,14 +33,15 @@ function prepareItems(rawItems, threshold) {
 
 function deriveEstimation(items, modelTotal, mealConfidence) {
   const itemTotal = computeItemTotal(items);
-  const effectiveModelTotal = Number.isFinite(modelTotal) ? modelTotal : itemTotal;
-  const range = confidenceToRange(effectiveModelTotal, mealConfidence);
-  const totalsNote = buildTotalsNote(itemTotal, effectiveModelTotal);
+  // Range must be based on the sum of the (possibly edited) included items.
+  const cleanModelTotal = Number.isFinite(modelTotal) ? modelTotal : itemTotal;
+  const range = confidenceToRange(itemTotal, mealConfidence);
+  const totalsNote = buildTotalsNote(itemTotal, cleanModelTotal);
   return {
     mealConfidence,
     items,
     itemTotal,
-    modelTotal: effectiveModelTotal,
+    modelTotal: cleanModelTotal,
     range,
     totalsNote,
   };
