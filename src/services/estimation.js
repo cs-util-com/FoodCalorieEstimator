@@ -33,9 +33,16 @@ function extractText(response) {
 }
 
 export class EstimationService {
-  constructor({ fetchImpl = fetch, maxSchemaRetries = 1 } = {}) {
-    this.fetchImpl = fetchImpl;
+  constructor({ fetchImpl, maxSchemaRetries = 1, timeoutMs = 15000 } = {}) {
+    // Ensure fetch is correctly bound to the global object to avoid Illegal invocation in some browsers
+    const globalFetch = typeof globalThis !== 'undefined' ? globalThis.fetch : undefined;
+    const rawFetch = fetchImpl || globalFetch;
+    if (!rawFetch) {
+      throw new Error('Fetch implementation not available');
+    }
+    this.fetchImpl = rawFetch === globalFetch && typeof rawFetch === 'function' ? rawFetch.bind(globalThis) : rawFetch;
     this.maxSchemaRetries = maxSchemaRetries;
+    this.timeoutMs = timeoutMs;
   }
 
   async estimate({ imageBlob, apiKey, modelVariant = 'flash' }) {
@@ -75,32 +82,65 @@ export class EstimationService {
     let lastError = null;
     while (attempt <= this.maxSchemaRetries) {
       attempt += 1;
-      const response = await this.fetchImpl(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      if (!response.ok) {
-        const error = new Error('ESTIMATION_HTTP_ERROR');
-        error.status = response.status;
-        throw error;
-      }
-      const json = await response.json();
-      const text = extractText(json);
-      if (!text) {
-        lastError = new Error('ESTIMATION_EMPTY_RESPONSE');
-        continue;
-      }
+      const startedAt = performance.now?.() ?? Date.now();
+      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const timeoutId = this.timeoutMs && controller ? setTimeout(() => controller.abort(), this.timeoutMs) : null;
       try {
-        const parsed = JSON.parse(text);
-        return parseEstimationResponse(parsed);
-      } catch (error) {
-        lastError = error;
-        if (attempt > this.maxSchemaRetries) {
-          const wrapped = new Error('ESTIMATION_SCHEMA_ERROR');
-          wrapped.cause = error;
-          throw wrapped;
+        const response = await this.fetchImpl(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: controller?.signal,
+        });
+        const duration = (performance.now?.() ?? Date.now()) - startedAt;
+        console.debug('[CalorieCam] Gemini HTTP response', { status: response.status, attempt, ms: Math.round(duration) });
+        if (!response.ok) {
+          const textBody = typeof response.text === 'function' ? await response.text().catch(() => '') : '';
+          const error = new Error('ESTIMATION_HTTP_ERROR');
+          error.status = response.status;
+          error.code = 'HTTP';
+          error.details = textBody?.slice(0, 500) || '';
+          throw error;
         }
+        const json = await response.json();
+        const text = extractText(json);
+        if (!text) {
+          lastError = new Error('ESTIMATION_EMPTY_RESPONSE');
+          lastError.code = 'EMPTY';
+          continue;
+        }
+        try {
+          const parsed = JSON.parse(text);
+          return parseEstimationResponse(parsed);
+        } catch (cause) {
+          lastError = cause;
+          if (attempt > this.maxSchemaRetries) {
+            const wrapped = new Error('ESTIMATION_SCHEMA_ERROR');
+            wrapped.code = 'SCHEMA';
+            wrapped.cause = cause;
+            throw wrapped;
+          }
+        }
+      } catch (err) {
+        // Distinguish abort/timeout, network, and HTTP (re-thrown above)
+        if (err?.name === 'AbortError') {
+          const e = new Error('ESTIMATION_TIMEOUT');
+          e.code = 'TIMEOUT';
+          lastError = e;
+        } else if (err?.code === 'HTTP' || err?.message === 'ESTIMATION_HTTP_ERROR') {
+          // Bubble up HTTP errors immediately (don’t retry on schema for HTTP failures)
+          throw err;
+        } else if (err?.code === 'SCHEMA' || err?.message === 'ESTIMATION_SCHEMA_ERROR') {
+          // Surface schema errors as-is (after retries exhausted)
+          throw err;
+        } else {
+          const e = new Error('ESTIMATION_NETWORK_ERROR');
+          e.code = 'NETWORK';
+          e.cause = err;
+          lastError = e;
+        }
+      } finally {
+        if (timeoutId) clearTimeout(timeoutId);
       }
     }
     throw lastError || new Error('ESTIMATION_UNKNOWN_ERROR');

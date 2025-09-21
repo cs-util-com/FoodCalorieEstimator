@@ -292,12 +292,19 @@ export class App {
     this.store.dispatch(actions.captureStart(file));
     const settings = selectors.settings(this.store.getState());
     try {
+      const t0 = performance.now?.() ?? Date.now();
       this.store.dispatch(actions.addLog('Preprocess: start', 'info'));
       console.log('[CalorieCam] Preprocess started');
       const preprocess = await this.preprocessService.preprocess(file);
+      const t1 = performance.now?.() ?? Date.now();
       this.store.dispatch(actions.captureDone(preprocess));
       this.currentImage = { blob: preprocess.normalizedBlob, width: preprocess.width, height: preprocess.height };
-      this.store.dispatch(actions.addLog(`Preprocess: done (${preprocess.width}x${preprocess.height})`, 'info'));
+      this.store.dispatch(
+        actions.addLog(
+          `Preprocess: done (${preprocess.width}x${preprocess.height}) in ${Math.round(t1 - t0)}ms`,
+          'info',
+        ),
+      );
       console.log('[CalorieCam] Preprocess done', {
         width: preprocess.width,
         height: preprocess.height,
@@ -313,14 +320,16 @@ export class App {
       console.log('[CalorieCam] Estimation starting with Gemini');
       await this.estimate(preprocess.normalizedBlob, settings);
     } catch (error) {
-      console.error(error);
-      this.store.dispatch(actions.captureFailure(error.message));
-      this.store.dispatch(actions.addLog(`Preprocess failed: ${error.message}`, 'error'));
+      console.error('[CalorieCam] Preprocess error', error);
+      const message = error?.message || 'Unknown preprocess error';
+      this.store.dispatch(actions.captureFailure(message));
+      this.store.dispatch(actions.addLog(`Preprocess error: ${message}`, 'error'));
       this.toast('Preprocessing failed. Try another image.');
     }
   }
 
   async estimate(blob, settings) {
+    const start = performance.now?.() ?? Date.now();
     this.store.dispatch(actions.estimationStart());
     try {
       const payload = await this.estimationService.estimate({
@@ -329,16 +338,30 @@ export class App {
         modelVariant: settings.modelVariant,
       });
       this.store.dispatch(actions.estimationSuccess(payload));
-      this.store.dispatch(actions.addLog('Estimation completed', 'info'));
+      const end = performance.now?.() ?? Date.now();
+      this.store.dispatch(actions.addLog(`Estimation: completed in ${Math.round(end - start)}ms`, 'info'));
       console.log('[CalorieCam] Estimation success', payload);
       this.renderCanvas();
       this.store.dispatch(actions.setActiveTab('camera'));
       this.showResult();
     } catch (error) {
-      this.store.dispatch(actions.estimationFailure(error.message));
-      this.store.dispatch(actions.addLog(`Estimation error: ${error.message}`, 'error'));
+      const code = error?.code || 'UNKNOWN';
+      const msg = error?.message || 'Unknown error';
+      this.store.dispatch(actions.estimationFailure(msg));
+      this.store.dispatch(actions.addLog(`Estimation error [${code}]: ${msg}`, 'error'));
+      if (error?.details) {
+        this.store.dispatch(actions.addLog(`Details: ${String(error.details).slice(0, 200)}`, 'error'));
+      }
       console.error('[CalorieCam] Estimation error', error);
-      this.toast('Gemini request failed. Check your key or try again.');
+      const friendly =
+        code === 'TIMEOUT'
+          ? 'Gemini timed out. Please try again.'
+          : code === 'HTTP'
+          ? `Gemini HTTP error${error.status ? ' ' + error.status : ''}. Check your key and quota.`
+          : code === 'NETWORK'
+          ? 'Network error reaching Gemini. Check your connection.'
+          : 'Gemini request failed. Check your key or try again.';
+      this.toast(friendly);
     }
   }
 
