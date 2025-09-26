@@ -47,3 +47,8 @@
 ## Iteration 12 – Polishing & edge errors
 - Added toast notifications, offline hint, About page, and log viewer toggle.
 - Detail delete clears canvas and history refresh ensures consistent state.
+
+## Iteration 13 – Camera-first landing
+- Reworked the shell to launch directly into a live camera preview with floating import/capture/history controls.
+- Added webcam capture pipeline with retry handling, error overlays, and bounding-box toggling from the preview stage.
+- Relocated demo and bounding box defaults into the Settings overlay and refreshed layout styles to support the new flow.

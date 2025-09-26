@@ -25,17 +25,24 @@ Single-photo calorie estimator for multi-item meals. A vision-LLM (Gemini 2.5) i
 
 ### Navigation
 
-* **Tabs (default = Camera)**: **Camera**, **History**, **Settings**.
+* **On load**: permission prompt immediately, then show **live camera preview** occupying the full viewport width (within the standard page chrome).
+* **Bottom control bar** (camera-style, centered over a translucent gradient): icon-only circular buttons with short labels below — **Import**, **Capture**, **History**. Capture is prominent in the middle; Import and History flank it.
+* **Settings icon**: persistent button in the top-right corner that opens the settings view; also exposes the demo runner and bbox defaults now relocated there.
+* When History or Settings is active, the camera preview is hidden and the selected surface occupies the main viewport; the bottom control bar remains for fast return to Capture.
 
-### Camera (native chooser)
+### Camera (live preview + capture)
 
-* Uses `<input type="file" accept="image/*" capture>`.
-* On select, image is normalized (EXIF-upright) and preprocessed (WEBP, 1536px long edge, q≈0.8), EXIF stripped.
+* Immediately requests webcam access and, when granted, renders a live `<video>` feed filling the available viewport area (above the control bar).
+* Capture button triggers a still frame grab (canvas) that replaces the live feed; the captured image remains full-bleed.
+* Import button triggers the existing `<input type="file" accept="image/*">` flow for devices without reliable cameras or when the user prefers their gallery.
+* If camera access fails (denied/unsupported), the preview region swaps to an error panel offering **Retry camera** while keeping Import available.
+* Captured or imported images proceed through preprocessing (EXIF upright, resize to WEBP ≤1536px, q≈0.8, EXIF stripped).
+
 
 ### Result
 
-* **Header**: Meal **kcal range** (derived from `meal_confidence`) and small badge stating that estimates may vary (About page only; no inline disclaimer).
-* **Image**: Bounding boxes **start visible**; label = **name + confidence**. **Tap image toggles** boxes on/off.
+* **Overlay totals**: Meal **kcal range** appears as a floating badge on top of the full-screen image (positioned near the top-left); tapping the badge scrolls to the detailed summary.
+* **Image**: Bounding boxes **start visible**; label = **name + confidence**. **Tap image toggles** boxes on/off, retaining the full-bleed presentation.
 * **Per-item list**:
 
   * Shows `name`, `kcal`, `confidence`, optional `estimated_grams`, and **used scale ref** indicator if set.
@@ -45,8 +52,10 @@ Single-photo calorie estimator for multi-item meals. A vision-LLM (Gemini 2.5) i
 * **Low-confidence handling**: items with `confidence < 0.35` are **excluded by default** (greyed; tap to include).
 * **Save**: explicit **Save** button; nothing is stored until tapped.
 
+
 ### History
 
+* Accessed via the bottom **History** control, replacing the camera preview with a dedicated scrollable screen while keeping the control bar visible.
 * **Grid gallery** (2-column on mobile) of thumbnails with kcal overlay and date.
 * **Search bar** (top): case-insensitive **substring** over item names; highlights matches.
 * Tapping an entry opens **Detail**:
@@ -58,6 +67,7 @@ Single-photo calorie estimator for multi-item meals. A vision-LLM (Gemini 2.5) i
 
 ### Settings (Power bundle)
 
+* Opens from the persistent top-right icon as a full-viewport view overlaying the camera; dismissing returns to the preview.
 * **Provider**: **Gemini only**. **Model variant toggle**: **2.5 Flash** (default) ⇄ **2.5 Pro**.
 * **Image preprocess** selector (1024/1536) and **units** (default kcal; can switch to kJ).
 * **Default “Show boxes”** toggle.
@@ -69,7 +79,8 @@ Single-photo calorie estimator for multi-item meals. A vision-LLM (Gemini 2.5) i
 
 ### Onboarding
 
-* **Demo-first**: Camera shows a “Try demo image” card (runs canned JSON). Adding a key unlocks real estimation.
+* **Camera-first**: App opens straight into the live preview; capture button is disabled until the user either provides a demo run or a valid Gemini key (prompted via Settings icon if missing).
+* **Demo**: Exposed via Settings; running it injects the canned JSON and shows the result while retaining the new layout.
 
 ---
 
