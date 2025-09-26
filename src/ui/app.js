@@ -767,7 +767,7 @@ export class App {
     const activeTab = selectors.activeTab(state);
     this.switchView(activeTab, state);
     this.updateHeader(activeTab, state);
-    this.updateControls(activeTab, state);
+  this.updateControls(activeTab);
     this.renderCamera();
     this.renderResult();
     this.renderHistory();
@@ -786,7 +786,7 @@ export class App {
     this.elements.appSubtitle.textContent = subtitle;
   }
 
-  updateControls(tab, state) {
+  updateControls(tab) {
     if (this.elements.captureButton) {
       this.elements.captureButton.setAttribute('aria-current', tab === 'camera' ? 'page' : 'false');
     }
