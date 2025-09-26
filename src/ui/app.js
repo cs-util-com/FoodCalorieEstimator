@@ -99,6 +99,10 @@ export class App {
     this.thumbUrls = new Map();
     this.currentImage = null;
     this.detailRecord = null;
+    this.cameraStream = null;
+    this.cameraStarting = false;
+    this.cameraErrorMessage = '';
+    this.cameraStartPromise = null;
   }
 
   init() {
@@ -107,6 +111,7 @@ export class App {
     this.bindEvents();
     this.loadSettings();
     this.attachOnlineHandlers();
+    this.startCamera();
     this.store.subscribe(() => this.render());
     this.render();
     this.refreshHistory();
@@ -115,21 +120,32 @@ export class App {
 
   cacheElements() {
     this.elements = {
-      tabs: Array.from(this.root.querySelectorAll('nav .secondary')),
+      appTitle: this.root.getElementById('app-title'),
+      appSubtitle: this.root.getElementById('app-subtitle'),
+      previewStage: this.root.getElementById('preview-stage'),
+      cameraPreview: this.root.getElementById('camera-preview'),
+      resultCanvas: this.root.getElementById('result-canvas'),
+      canvasOverlay: this.root.getElementById('canvas-overlay'),
+      rangeOverlay: this.root.getElementById('range-overlay'),
+      cameraError: this.root.getElementById('camera-error'),
+      cameraErrorMessage: this.root.getElementById('camera-error-message'),
+      retryCamera: this.root.getElementById('retry-camera'),
+      captureStatus: this.root.getElementById('capture-status'),
+      controlBar: this.root.getElementById('control-bar'),
+      importButton: this.root.getElementById('import-button'),
+      captureButton: this.root.getElementById('capture-button'),
+      historyButton: this.root.getElementById('history-button'),
+      settingsButton: this.root.getElementById('settings-button'),
+      settingsClose: this.root.getElementById('settings-close'),
+      fileInput: this.root.getElementById('file-input'),
       views: {
-        camera: this.root.getElementById('camera-view'),
+        camera: this.root.getElementById('camera-shell'),
         result: this.root.getElementById('result-view'),
         history: this.root.getElementById('history-view'),
         detail: this.root.getElementById('detail-view'),
         settings: this.root.getElementById('settings-view'),
       },
-      fileInput: this.root.getElementById('file-input'),
       demoButton: this.root.getElementById('demo-button'),
-      toggleBoxes: this.root.getElementById('toggle-boxes'),
-      captureStatus: this.root.getElementById('capture-status'),
-      canvasWrapper: this.root.getElementById('canvas-wrapper'),
-      resultCanvas: this.root.getElementById('result-canvas'),
-      canvasOverlay: this.root.getElementById('canvas-overlay'),
       resultSummary: this.root.getElementById('result-summary'),
       resultNote: this.root.getElementById('result-note'),
       itemsList: this.root.getElementById('items-list'),
@@ -156,14 +172,10 @@ export class App {
   }
 
   bindEvents() {
-    this.elements.tabs.forEach((button) => {
-      button.addEventListener('click', () => {
-        const tab = button.dataset.tab;
-        this.store.dispatch(actions.setActiveTab(tab));
-      });
-    });
+    const { fileInput, importButton, captureButton, historyButton, settingsButton, settingsClose, retryCamera, previewStage, rangeOverlay } =
+      this.elements;
 
-    this.elements.fileInput.addEventListener('change', (event) => {
+    fileInput?.addEventListener('change', (event) => {
       const file = event.target.files?.[0];
       if (file) {
         console.log('[CalorieCam] File selected:', { name: file.name, size: file.size, type: file.type });
@@ -172,46 +184,74 @@ export class App {
       }
     });
 
-    this.elements.demoButton.addEventListener('click', () => this.runDemo());
-
-    this.elements.toggleBoxes.addEventListener('change', (event) => {
-      this.store.dispatch(actions.setShowBoxes(event.target.checked));
-      this.store.dispatch(actions.addLog(`Show boxes: ${event.target.checked}`, 'info'));
-      this.renderCanvas();
+    importButton?.addEventListener('click', () => {
+      if (!fileInput) return;
+      fileInput.value = '';
+      fileInput.click();
     });
 
-    this.elements.addItemButton.addEventListener('click', () => {
+    captureButton?.addEventListener('click', () => this.handleCaptureClick());
+
+    historyButton?.addEventListener('click', () => {
+      const activeTab = selectors.activeTab(this.store.getState());
+      const nextTab = activeTab === 'history' ? 'camera' : 'history';
+      this.store.dispatch(actions.setActiveTab(nextTab));
+    });
+
+    settingsButton?.addEventListener('click', () => this.openSettings());
+    settingsClose?.addEventListener('click', () => this.closeSettings());
+    retryCamera?.addEventListener('click', () => this.retryCamera());
+
+    this.elements.demoButton?.addEventListener('click', () => this.runDemo());
+
+    previewStage?.addEventListener('click', (event) => {
+      if (event.target.closest('.camera-error') || event.target.closest('#range-overlay')) {
+        return;
+      }
+      if (!selectors.estimationData(this.store.getState())) return;
+      this.toggleBoxes();
+    });
+
+    rangeOverlay?.addEventListener('click', (event) => {
+      event.stopPropagation();
+      if (!this.elements.views?.result?.classList.contains('is-active')) return;
+      this.elements.views.result.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    this.elements.addItemButton?.addEventListener('click', () => {
+      if (!this.elements.addItemForm) return;
       this.elements.addItemForm.hidden = !this.elements.addItemForm.hidden;
     });
 
-    this.elements.addItemForm.addEventListener('submit', this.handleManualItemForm(this.elements.addItemForm));
+    this.elements.addItemForm?.addEventListener('submit', this.handleManualItemForm(this.elements.addItemForm));
 
-    this.elements.saveMeal.addEventListener('click', () => this.saveMeal());
+    this.elements.saveMeal?.addEventListener('click', () => this.saveMeal());
 
-    this.elements.detailAddButton.addEventListener('click', () => {
+    this.elements.detailAddButton?.addEventListener('click', () => {
+      if (!this.elements.detailAddForm) return;
       this.elements.detailAddForm.hidden = !this.elements.detailAddForm.hidden;
     });
 
-    this.elements.detailAddForm.addEventListener('submit', this.handleManualItemForm(this.elements.detailAddForm));
+    this.elements.detailAddForm?.addEventListener('submit', this.handleManualItemForm(this.elements.detailAddForm));
 
-    this.elements.detailSave.addEventListener('click', () => this.saveMeal());
+    this.elements.detailSave?.addEventListener('click', () => this.saveMeal());
 
-    this.elements.historySearch.addEventListener('input', (event) => {
+    this.elements.historySearch?.addEventListener('input', (event) => {
       this.store.dispatch(actions.setHistorySearch(event.target.value));
       this.renderHistory();
     });
 
-    this.elements.detailClose.addEventListener('click', () => {
+    this.elements.detailClose?.addEventListener('click', () => {
       this.store.dispatch(actions.selectHistoryEntry(null));
       this.store.dispatch(actions.captureReset());
       this.detailRecord = null;
       this.store.dispatch(actions.setActiveTab('history'));
     });
 
-    this.elements.detailDelete.addEventListener('click', () => this.deleteDetail());
-    this.elements.detailExport.addEventListener('click', () => this.exportDetail());
+    this.elements.detailDelete?.addEventListener('click', () => this.deleteDetail());
+    this.elements.detailExport?.addEventListener('click', () => this.exportDetail());
 
-    this.elements.settingsForm.addEventListener('submit', (event) => {
+    this.elements.settingsForm?.addEventListener('submit', (event) => {
       event.preventDefault();
       const formData = new FormData(this.elements.settingsForm);
       const settings = {
@@ -227,17 +267,27 @@ export class App {
       this.toast('Settings saved');
     });
 
-    this.elements.logsToggle.addEventListener('click', () => {
+    this.elements.logsToggle?.addEventListener('click', () => {
+      if (!this.elements.logs) return;
       this.elements.logs.hidden = !this.elements.logs.hidden;
       this.renderLogs();
     });
 
-    this.elements.wipeData.addEventListener('click', () => this.wipeData());
+    this.elements.wipeData?.addEventListener('click', () => this.wipeData());
+
+    window.addEventListener('resize', () => this.renderCanvas());
   }
 
   attachOnlineHandlers() {
     window.addEventListener('offline', () => this.toast('You are offline. Estimation disabled.'));
     window.addEventListener('online', () => this.toast('Back online.'));
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        this.pauseCamera();
+      } else if (selectors.activeTab(this.store.getState()) === 'camera') {
+        this.startCamera();
+      }
+    });
   }
 
   async registerServiceWorker() {
@@ -256,8 +306,6 @@ export class App {
       const parsed = JSON.parse(saved);
       this.store.dispatch(actions.updateSettings(parsed));
     }
-    const settings = selectors.settings(this.store.getState());
-    this.elements.toggleBoxes.checked = settings.defaultShowBoxes;
     this.syncSettingsForm();
   }
 
@@ -299,8 +347,13 @@ export class App {
     };
   }
 
-  async handleFile(file) {
+  async handleFile(file, options = {}) {
     this.store.dispatch(actions.captureStart(file));
+    const { width: previewWidth, height: previewHeight } = options;
+    if (previewWidth && previewHeight) {
+      this.currentImage = { blob: file, width: previewWidth, height: previewHeight };
+      this.renderCanvas();
+    }
     const settings = selectors.settings(this.store.getState());
     try {
       const t0 = performance.now?.() ?? Date.now();
@@ -308,8 +361,9 @@ export class App {
       console.log('[CalorieCam] Preprocess started');
       const preprocess = await this.preprocessService.preprocess(file);
       const t1 = performance.now?.() ?? Date.now();
-      this.store.dispatch(actions.captureDone(preprocess));
-      this.currentImage = { blob: preprocess.normalizedBlob, width: preprocess.width, height: preprocess.height };
+  this.store.dispatch(actions.captureDone(preprocess));
+  this.currentImage = { blob: preprocess.normalizedBlob, width: preprocess.width, height: preprocess.height };
+  this.renderCanvas();
       this.store.dispatch(
         actions.addLog(
           `Preprocess: done (${preprocess.width}x${preprocess.height}) in ${Math.round(t1 - t0)}ms`,
@@ -321,7 +375,6 @@ export class App {
         height: preprocess.height,
         blobType: preprocess.normalizedBlob?.type,
       });
-      this.renderCanvas();
       if (!settings.apiKey) {
         this.store.dispatch(actions.estimationFailure('API key required for estimation.')); 
         this.toast('Add your Gemini API key in Settings to run real estimations.');
@@ -337,6 +390,181 @@ export class App {
       this.store.dispatch(actions.addLog(`Preprocess error: ${message}`, 'error'));
       this.toast('Preprocessing failed. Try another image.');
     }
+  }
+
+  async handleCaptureClick() {
+    const state = this.store.getState();
+    const activeTab = selectors.activeTab(state);
+    if (activeTab !== 'camera') {
+      this.store.dispatch(actions.setActiveTab('camera'));
+      this.startCamera();
+      return;
+    }
+    const captureStatus = selectors.captureStatus(state);
+    const estimationStatus = selectors.estimationStatus(state);
+    if (captureStatus === 'processing' || estimationStatus === 'processing') {
+      return;
+    }
+    if (!this.cameraStream) {
+      await this.startCamera();
+      if (!this.cameraStream) {
+        return;
+      }
+    }
+    await this.capturePhoto();
+  }
+
+  async capturePhoto() {
+    if (!this.elements.cameraPreview) {
+      this.toast('Camera unavailable.');
+      return;
+    }
+    if (!this.cameraStream) {
+      await this.startCamera();
+      if (!this.cameraStream) {
+        this.toast('Camera permission needed.');
+        return;
+      }
+    }
+      this.store.dispatch(actions.addLog('Camera capture triggered', 'info'));
+    const video = this.elements.cameraPreview;
+    const width = video.videoWidth;
+    const height = video.videoHeight;
+    if (!width || !height) {
+      this.toast('Camera warming up…');
+      return;
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      this.toast('Capture failed.');
+      return;
+    }
+    ctx.drawImage(video, 0, 0, width, height);
+    try {
+      const exportBlob = (type) =>
+        new Promise((resolve, reject) => {
+          canvas.toBlob((result) => {
+            if (result) {
+              resolve(result);
+            } else {
+              reject(new Error('Capture failed'));
+            }
+          }, type, 0.92);
+        });
+  const blob = await exportBlob('image/webp').catch(() => exportBlob('image/png'));
+  const extension = blob.type === 'image/png' ? 'png' : 'webp';
+  const file = new File([blob], `camera-${Date.now()}.${extension}`, { type: blob.type || 'image/webp' });
+      await this.handleFile(file, { width, height });
+    } catch (error) {
+      console.error('[CalorieCam] Capture failed', error);
+      this.toast('Capture failed. Try again.');
+    }
+  }
+
+  async startCamera() {
+    if (this.cameraStream) {
+      return this.cameraStream;
+    }
+    if (document.hidden) {
+      return null;
+    }
+    if (this.cameraStartPromise) {
+      await this.cameraStartPromise;
+      return this.cameraStream;
+    }
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+      this.showCameraError('Camera not supported on this device. Use Import instead.');
+      return null;
+    }
+    this.cameraStarting = true;
+    this.cameraStartPromise = (async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+        this.cameraStream = stream;
+        if (this.elements.cameraPreview) {
+          this.elements.cameraPreview.srcObject = stream;
+          try {
+            await this.elements.cameraPreview.play?.();
+          } catch {
+            /* ignore play errors */
+          }
+        }
+        this.clearCameraError();
+        return stream;
+      } catch (error) {
+        const name = error?.name;
+        const friendly = name === 'NotAllowedError' || name === 'PermissionDeniedError'
+          ? 'Camera access denied. Allow access or use Import.'
+          : 'Camera unavailable. Allow access or use Import.';
+        this.showCameraError(friendly);
+        this.store.dispatch(actions.addLog(`Camera error: ${error?.message || error}`, 'error'));
+        this.pauseCamera();
+        return null;
+      }
+    })();
+    const stream = await this.cameraStartPromise;
+    this.cameraStarting = false;
+    this.cameraStartPromise = null;
+    this.renderCamera();
+    return stream;
+  }
+
+  pauseCamera() {
+    if (!this.cameraStream) return;
+    try {
+      this.cameraStream.getTracks().forEach((track) => {
+        try {
+          track.stop();
+        } catch {
+          /* ignore */
+        }
+      });
+    } finally {
+      this.cameraStream = null;
+      if (this.elements.cameraPreview) {
+        this.elements.cameraPreview.srcObject = null;
+      }
+      this.renderCamera();
+    }
+  }
+
+  retryCamera() {
+    this.pauseCamera();
+    this.cameraErrorMessage = '';
+    this.startCamera();
+  }
+
+  openSettings() {
+    this.store.dispatch(actions.setActiveTab('settings'));
+  }
+
+  closeSettings() {
+    this.store.dispatch(actions.setActiveTab('camera'));
+  }
+
+  toggleBoxes() {
+    const state = this.store.getState();
+    if (!selectors.estimationData(state)) return;
+    const next = !selectors.showBoxes(state);
+    this.store.dispatch(actions.setShowBoxes(next));
+    this.store.dispatch(actions.addLog(`Show boxes: ${next}`, 'info'));
+    this.renderCanvas();
+  }
+
+  showCameraError(message) {
+    this.cameraErrorMessage = message;
+    if (this.elements.cameraErrorMessage) {
+      this.elements.cameraErrorMessage.textContent = message;
+    }
+    this.renderCamera();
+  }
+
+  clearCameraError() {
+    this.cameraErrorMessage = '';
+    this.renderCamera();
   }
 
   async estimate(blob, settings) {
@@ -392,8 +620,7 @@ export class App {
   }
 
   showResult() {
-    this.switchView('camera');
-    this.elements.views.result.classList.add('is-active');
+    this.elements.views?.result?.classList.add('is-active');
   }
 
   async refreshHistory() {
@@ -465,7 +692,7 @@ export class App {
     this.renderCanvas();
     await this.refreshHistory();
     this.store.dispatch(actions.selectHistoryEntry(null));
-    this.switchView('history');
+    this.store.dispatch(actions.setActiveTab('history'));
   }
 
   exportDetail() {
@@ -495,7 +722,7 @@ export class App {
       height: loaded.meal.height,
     };
     this.renderCanvas();
-    this.switchView('detail');
+    this.store.dispatch(actions.setActiveTab('history'));
     this.renderDetail();
   }
 
@@ -516,26 +743,31 @@ export class App {
     setTimeout(() => this.elements.notificationDialog.close(), 1600);
   }
 
-  switchView(tab) {
-    Object.entries(this.elements.views).forEach(([key, section]) => {
-      section.classList.toggle('is-active', key === tab || (tab === 'camera' && key === 'camera'));
-    });
+  switchView(tab, state = this.store.getState()) {
+    const views = this.elements.views || {};
+    const detailActive = tab === 'history' && Boolean(state.history?.selectedId);
+    const hasEstimation = Boolean(state.estimation?.data);
+    views.camera?.classList.toggle('is-active', tab === 'camera');
+    views.result?.classList.toggle('is-active', tab === 'camera' && hasEstimation);
+    views.history?.classList.toggle('is-active', tab === 'history' && !detailActive);
+    views.detail?.classList.toggle('is-active', tab === 'history' && detailActive);
+    views.settings?.classList.toggle('is-active', tab === 'settings');
+    if (this.elements.controlBar) {
+      this.elements.controlBar.classList.toggle('hidden', tab === 'settings');
+    }
+    if (tab === 'camera' && !document.hidden) {
+      void this.startCamera();
+    } else if (tab !== 'camera') {
+      this.pauseCamera();
+    }
   }
 
   render() {
     const state = this.store.getState();
     const activeTab = selectors.activeTab(state);
-    this.elements.tabs.forEach((button) => {
-      const isActive = button.dataset.tab === activeTab;
-      button.setAttribute('aria-current', isActive ? 'page' : 'false');
-    });
-    this.switchView(activeTab);
-    if (state.estimation.data) {
-      this.elements.views.result.classList.add('is-active');
-    }
-    if (state.history.selectedId) {
-      this.elements.views.detail.classList.add('is-active');
-    }
+    this.switchView(activeTab, state);
+    this.updateHeader(activeTab, state);
+    this.updateControls(activeTab, state);
     this.renderCamera();
     this.renderResult();
     this.renderHistory();
@@ -543,20 +775,59 @@ export class App {
     this.renderLogs();
   }
 
+  updateHeader(tab, state) {
+    if (!this.elements.appSubtitle) return;
+    let subtitle = 'Camera';
+    if (tab === 'history') {
+      subtitle = state.history?.selectedId ? 'Meal detail' : 'History';
+    } else if (tab === 'settings') {
+      subtitle = 'Settings';
+    }
+    this.elements.appSubtitle.textContent = subtitle;
+  }
+
+  updateControls(tab, state) {
+    if (this.elements.captureButton) {
+      this.elements.captureButton.setAttribute('aria-current', tab === 'camera' ? 'page' : 'false');
+    }
+    if (this.elements.historyButton) {
+      const historyActive = tab === 'history';
+      this.elements.historyButton.setAttribute('aria-current', historyActive ? 'page' : 'false');
+    }
+  }
+
   renderCamera() {
-    const status = selectors.captureStatus(this.store.getState());
-    const estimationStatus = selectors.estimationStatus(this.store.getState());
+    const state = this.store.getState();
+    const status = selectors.captureStatus(state);
+    const estimationStatus = selectors.estimationStatus(state);
     const isLoading = status === 'processing' || estimationStatus === 'processing';
 
-    this.elements.captureStatus.innerHTML = isLoading ? '<p><progress></progress></p>' : '';
-    this.elements.canvasWrapper.hidden = !this.currentImage;
+    if (this.elements.captureStatus) {
+      this.elements.captureStatus.innerHTML = isLoading ? '<progress aria-label="Image processing progress"></progress>' : '';
+    }
+
+    const hasImage = Boolean(this.currentImage);
+    this.elements.resultCanvas?.classList.toggle('is-visible', hasImage);
+    this.elements.cameraPreview?.classList.toggle('is-hidden', hasImage);
+
+    if (this.elements.cameraError) {
+      if (this.cameraErrorMessage) {
+        this.elements.cameraError.hidden = false;
+        if (this.elements.cameraErrorMessage) {
+          this.elements.cameraErrorMessage.textContent = this.cameraErrorMessage;
+        }
+      } else {
+        this.elements.cameraError.hidden = true;
+      }
+    }
   }
 
   renderCanvas() {
     const state = this.store.getState();
     const showBoxes = selectors.showBoxes(state);
     const items = selectors.estimationData(state)?.items || [];
-    this.imageCanvas.render({ ...this.currentImage, items, showBoxes });
+    const baseImage = this.currentImage ? { ...this.currentImage } : {};
+    this.imageCanvas.render({ ...baseImage, items, showBoxes });
   }
 
   renderEditableItems(container) {
@@ -615,14 +886,25 @@ export class App {
       this.elements.itemsList.innerHTML = '<p class="muted">No meal estimated yet.</p>';
       this.elements.resultSummary.textContent = '';
       this.elements.resultNote.textContent = '';
+      if (this.elements.rangeOverlay) {
+        this.elements.rangeOverlay.hidden = true;
+      }
       return;
     }
     const settings = selectors.settings(this.store.getState());
-    this.elements.resultSummary.innerHTML = `Meal range <span class="range-badge">${formatRange(
-      estimation.range,
-      settings.units,
-    )}</span>`;
+    const rangeText = formatRange(estimation.range, settings.units);
+    this.elements.resultSummary.innerHTML = rangeText
+      ? `Meal range <span class="range-badge">${rangeText}</span>`
+      : 'Meal range <span class="range-badge">–</span>';
     this.elements.resultNote.textContent = estimation.totalsNote.showNote ? estimation.totalsNote.message : '';
+    if (this.elements.rangeOverlay) {
+      if (rangeText) {
+        this.elements.rangeOverlay.textContent = rangeText;
+        this.elements.rangeOverlay.hidden = false;
+      } else {
+        this.elements.rangeOverlay.hidden = true;
+      }
+    }
     this.renderEditableItems(this.elements.itemsList);
   }
 
