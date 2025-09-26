@@ -156,7 +156,8 @@ describe('App UI integration', () => {
     // Should not throw; should fall back to placeholder image
     expect(() => app.renderHistory()).not.toThrow();
     const imgSrc = document.querySelector('#history-grid img')?.getAttribute('src');
-    expect(imgSrc).toMatch(/via\.placeholder\.com/);
+    // Should fall back to our inline data URL placeholder (offline-safe)
+    expect(imgSrc).toMatch(/^data:image\/(svg\+xml|png);/);
   });
 
   test('saveMeal forwards data to storage service', async () => {

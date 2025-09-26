@@ -44,6 +44,17 @@ const DEMO_SAMPLE = {
 
 const DEMO_IMAGE_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=';
 
+// Offline-safe placeholder thumbnail (160x120) as inline SVG data URL
+// Rationale: Avoids external network calls to placeholder services which may fail offline.
+const PLACEHOLDER_THUMB =
+  'data:image/svg+xml;utf8,' +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="160" height="120" viewBox="0 0 160 120">\n' +
+      '<rect width="160" height="120" fill="#e5e7eb"/>\n' +
+      '<text x="80" y="60" text-anchor="middle" dominant-baseline="middle" font-family="system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif" font-size="16" fill="#6b7280">Meal</text>\n' +
+    '</svg>'
+  );
+
 function base64ToBlob(base64, type) {
   const binary = atob(base64);
   const length = binary.length;
@@ -627,7 +638,7 @@ export class App {
       card.dataset.id = entry.id;
       const thumbUrl = this.ensureThumbUrl(entry.id, entry.thumbBlob);
       card.innerHTML = `
-        <img src="${thumbUrl || 'https://via.placeholder.com/160?text=Meal'}" alt="Meal" />
+        <img src="${thumbUrl || PLACEHOLDER_THUMB}" alt="Meal" />
         <span>${formatEnergy(entry.totalKcal ?? entry.itemTotal ?? 0, settings.units)}</span>
       `;
       card.addEventListener('click', () => this.openDetail(entry.id));
@@ -649,9 +660,8 @@ export class App {
       try { URL.revokeObjectURL(existing); } catch { /* ignore */ }
       this.thumbUrls.delete(id);
     }
-    // Validate blob is really a Blob/MediaSource-like before creating the URL
-    const isBlobLike = blob instanceof Blob || (blob && typeof blob.arrayBuffer === 'function');
-    if (!blob || !isBlobLike) return null;
+    // Only accept real Blob instances to avoid issues with legacy or malformed data
+    if (!(blob instanceof Blob)) return null;
     const url = URL.createObjectURL(blob);
     this.thumbUrls.set(id, url);
     return url;
