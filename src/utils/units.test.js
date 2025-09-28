@@ -10,4 +10,8 @@ describe('energy utils', () => {
     // Why: UI badges should render consistent unit strings.
     expect(formatEnergy(123.4)).toBe('123 kcal');
   });
+
+  test('convertEnergy rejects unsupported units', () => {
+    expect(() => convertEnergy(50, 'cal')).toThrow(/unsupported/i);
+  });
 });
