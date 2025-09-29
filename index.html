@@ -207,12 +207,6 @@
               <canvas id="result-canvas" width="640" height="480"></canvas>
               <div id="canvas-overlay"></div>
             </div>
-            <div class="bbox-toggle">
-              <label>
-                <input type="checkbox" id="toggle-boxes" />
-                <span>Show bounding boxes</span>
-              </label>
-            </div>
           </article>
         </section>
 
@@ -330,17 +324,21 @@
                 <input type="checkbox" name="defaultShowBoxes" />
                 Default bounding boxes
               </label>
+              <div class="bbox-toggle">
+                <label>
+                  <input type="checkbox" id="toggle-boxes" />
+                  <span>Show bounding boxes</span>
+                </label>
+              </div>
               <button type="submit" class="contrast">Save settings</button>
             </form>
             <hr />
             <div class="grid">
               <button id="logs-toggle" type="button">Show logs</button>
               <button id="wipe-data" class="secondary" type="button">Wipe all data</button>
+              <a href="pages/about.html" id="about-link">About &amp; disclaimers</a>
             </div>
             <pre id="logs" class="logs" hidden></pre>
-            <footer>
-              <a href="pages/about.html" id="about-link">About &amp; disclaimers</a>
-            </footer>
           </article>
         </section>
       </div>
