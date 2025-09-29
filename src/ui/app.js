@@ -117,7 +117,7 @@ export class App {
     this.elements = {
       tabs: Array.from(this.root.querySelectorAll('nav .secondary')),
       views: {
-        camera: this.root.getElementById('camera-view'),
+        camera: this.root.getElementById('camera-shell') || this.root.getElementById('camera-view'),
         result: this.root.getElementById('result-view'),
         history: this.root.getElementById('history-view'),
         detail: this.root.getElementById('detail-view'),
@@ -128,6 +128,7 @@ export class App {
       toggleBoxes: this.root.getElementById('toggle-boxes'),
       captureStatus: this.root.getElementById('capture-status'),
       canvasWrapper: this.root.getElementById('canvas-wrapper'),
+      cameraPreview: this.root.getElementById('camera-preview'),
       resultCanvas: this.root.getElementById('result-canvas'),
       canvasOverlay: this.root.getElementById('canvas-overlay'),
       resultSummary: this.root.getElementById('result-summary'),
@@ -174,11 +175,13 @@ export class App {
 
     this.elements.demoButton.addEventListener('click', () => this.runDemo());
 
-    this.elements.toggleBoxes.addEventListener('change', (event) => {
-      this.store.dispatch(actions.setShowBoxes(event.target.checked));
-      this.store.dispatch(actions.addLog(`Show boxes: ${event.target.checked}`, 'info'));
-      this.renderCanvas();
-    });
+    if (this.elements.toggleBoxes) {
+      this.elements.toggleBoxes.addEventListener('change', (event) => {
+        this.store.dispatch(actions.setShowBoxes(event.target.checked));
+        this.store.dispatch(actions.addLog(`Show boxes: ${event.target.checked}`, 'info'));
+        this.renderCanvas();
+      });
+    }
 
     this.elements.addItemButton.addEventListener('click', () => {
       this.elements.addItemForm.hidden = !this.elements.addItemForm.hidden;
@@ -257,7 +260,10 @@ export class App {
       this.store.dispatch(actions.updateSettings(parsed));
     }
     const settings = selectors.settings(this.store.getState());
-    this.elements.toggleBoxes.checked = settings.defaultShowBoxes;
+    if (this.elements.toggleBoxes) {
+      this.elements.toggleBoxes.checked = settings.defaultShowBoxes;
+    }
+    this.store.dispatch(actions.setShowBoxes(settings.defaultShowBoxes));
     this.syncSettingsForm();
   }
 
@@ -518,6 +524,7 @@ export class App {
 
   switchView(tab) {
     Object.entries(this.elements.views).forEach(([key, section]) => {
+      if (!section) return;
       section.classList.toggle('is-active', key === tab || (tab === 'camera' && key === 'camera'));
     });
   }
@@ -547,9 +554,23 @@ export class App {
     const status = selectors.captureStatus(this.store.getState());
     const estimationStatus = selectors.estimationStatus(this.store.getState());
     const isLoading = status === 'processing' || estimationStatus === 'processing';
+    const hasImage = Boolean(this.currentImage);
 
-    this.elements.captureStatus.innerHTML = isLoading ? '<p><progress></progress></p>' : '';
-    this.elements.canvasWrapper.hidden = !this.currentImage;
+    if (this.elements.captureStatus) {
+      this.elements.captureStatus.innerHTML = isLoading ? '<p><progress></progress></p>' : '';
+    }
+    if (this.elements.canvasWrapper) {
+      this.elements.canvasWrapper.hidden = !hasImage;
+    }
+    if (this.elements.resultCanvas) {
+      this.elements.resultCanvas.classList.toggle('is-visible', hasImage);
+    }
+    if (this.elements.canvasOverlay) {
+      this.elements.canvasOverlay.hidden = !hasImage;
+    }
+    if (this.elements.cameraPreview) {
+      this.elements.cameraPreview.classList.toggle('is-hidden', hasImage);
+    }
   }
 
   renderCanvas() {

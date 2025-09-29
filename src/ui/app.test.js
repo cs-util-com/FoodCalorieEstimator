@@ -8,16 +8,26 @@ function setupDom() {
       <button class="secondary" data-tab="history"></button>
       <button class="secondary" data-tab="settings"></button>
     </nav>
-    <section id="camera-view" class="view"></section>
+    <section id="camera-shell" class="view">
+      <div id="preview-stage" class="preview-stage">
+        <video id="camera-preview" class="camera-preview"></video>
+        <canvas id="result-canvas" width="640" height="480"></canvas>
+        <div id="canvas-overlay"></div>
+        <button id="range-overlay" hidden></button>
+        <div id="camera-error" hidden>
+          <p id="camera-error-message"></p>
+          <button id="retry-camera" type="button"></button>
+        </div>
+        <div id="capture-status"></div>
+      </div>
+    </section>
     <section id="result-view" class="view"></section>
     <section id="history-view" class="view"></section>
     <section id="detail-view" class="view"></section>
     <section id="settings-view" class="view"></section>
     <input id="file-input" />
     <button id="demo-button"></button>
-    <input type="checkbox" id="toggle-boxes" />
-    <div id="capture-status"></div>
-    <div id="canvas-wrapper"><canvas id="result-canvas" width="640" height="480"></canvas><div id="canvas-overlay"></div></div>
+  <input type="checkbox" id="toggle-boxes" />
     <p id="result-summary"></p>
     <small id="result-note"></small>
     <div id="items-list"></div>
@@ -94,6 +104,35 @@ describe('App UI integration', () => {
       root: document,
     });
     app.init();
+  });
+
+  test('switchView tolerates missing DOM nodes', () => {
+    app.elements.views.camera = null;
+    expect(() => app.switchView('camera')).not.toThrow();
+  });
+
+  test('renderCamera toggles preview and canvas visibility without wrapper', () => {
+    const preview = document.getElementById('camera-preview');
+    const canvas = document.getElementById('result-canvas');
+    const overlay = document.getElementById('canvas-overlay');
+
+    app.renderCamera();
+    expect(app.elements.canvasWrapper).toBeNull();
+    expect(preview.classList.contains('is-hidden')).toBe(false);
+    expect(canvas.classList.contains('is-visible')).toBe(false);
+    expect(overlay.hidden).toBe(true);
+
+    app.currentImage = { blob: createFakeBlob(), width: 10, height: 5 };
+    app.renderCamera();
+    expect(preview.classList.contains('is-hidden')).toBe(true);
+    expect(canvas.classList.contains('is-visible')).toBe(true);
+    expect(overlay.hidden).toBe(false);
+
+    app.currentImage = null;
+    app.renderCamera();
+    expect(preview.classList.contains('is-hidden')).toBe(false);
+    expect(canvas.classList.contains('is-visible')).toBe(false);
+    expect(overlay.hidden).toBe(true);
   });
 
   test('manual item form dispatches addItem action', () => {
