@@ -102,12 +102,19 @@ export class App {
   }
 
   init() {
+    this.tabHandlers = new Map();
     this.cacheElements();
     this.imageCanvas = new ImageCanvas(this.elements.resultCanvas, this.elements.canvasOverlay);
     this.bindEvents();
     this.loadSettings();
     this.attachOnlineHandlers();
-    this.store.subscribe(() => this.render());
+    this.detailRecord = null;
+    this.cameraStream = null;
+    this.captureSurface = null;
+    this.defaultCaptureAttr = null;
+    this.cameraStream = null;
+    this.captureSurface = null;
+    this.defaultCaptureAttr = null;
     this.render();
     this.refreshHistory();
     this.registerServiceWorker();
@@ -127,15 +134,15 @@ export class App {
       demoButton: this.root.getElementById('demo-button'),
       toggleBoxes: this.root.getElementById('toggle-boxes'),
       captureStatus: this.root.getElementById('capture-status'),
-      canvasWrapper: this.root.getElementById('canvas-wrapper'),
       cameraPreview: this.root.getElementById('camera-preview'),
+  canvasWrapper: this.root.querySelector('.canvas-wrapper'),
       resultCanvas: this.root.getElementById('result-canvas'),
       canvasOverlay: this.root.getElementById('canvas-overlay'),
       resultSummary: this.root.getElementById('result-summary'),
       resultNote: this.root.getElementById('result-note'),
       itemsList: this.root.getElementById('items-list'),
       addItemButton: this.root.getElementById('add-item'),
-      addItemForm: this.root.getElementById('add-item-form'),
+  addItemForm: this.root.getElementById('add-item-form'),
       saveMeal: this.root.getElementById('save-meal'),
       historySearch: this.root.getElementById('history-search'),
       historyGrid: this.root.getElementById('history-grid'),
@@ -153,14 +160,121 @@ export class App {
       logs: this.root.getElementById('logs'),
       wipeData: this.root.getElementById('wipe-data'),
       notificationDialog: this.root.getElementById('notification-dialog'),
+      controlBar: this.root.getElementById('control-bar'),
+      captureButton: this.root.getElementById('capture-button'),
+      importButton: this.root.getElementById('import-button'),
+      historyButton: this.root.getElementById('history-button'),
+      settingsButton: this.root.getElementById('settings-button'),
+      settingsClose: this.root.getElementById('settings-close'),
+      cameraError: this.root.getElementById('camera-error'),
+      cameraErrorMessage: this.root.getElementById('camera-error-message'),
+      retryCamera: this.root.getElementById('retry-camera'),
+      rangeOverlay: this.root.getElementById('range-overlay'),
     };
+    this.defaultCaptureAttr = this.elements.fileInput?.getAttribute('capture') ?? null;
+    this.setupTabTargets();
+  }
+
+  setupTabTargets() {
+    const existingTabButtons = Array.from(this.root.querySelectorAll('[data-tab]')).filter(
+      (element) => element instanceof HTMLElement,
+    );
+
+    const fallbackConfig = [
+      ['camera', this.elements.captureButton],
+      ['history', this.elements.historyButton],
+      ['settings', this.elements.settingsButton],
+    ].filter(([, element]) => element instanceof HTMLElement);
+
+    let tabButtons = existingTabButtons;
+    if (tabButtons.length === 0 && fallbackConfig.length > 0) {
+      fallbackConfig.forEach(([tab, button]) => {
+        if (!button.dataset.tab) {
+          button.dataset.tab = tab;
+        }
+      });
+      tabButtons = fallbackConfig.map(([, button]) => button);
+    }
+
+    this.elements.tabs = tabButtons;
+
+    if (!(this.tabHandlers instanceof Map)) {
+      this.tabHandlers = new Map();
+    }
+
+    const validButtons = new Set(tabButtons);
+    for (const button of Array.from(this.tabHandlers.keys())) {
+      if (!validButtons.has(button)) {
+        this.tabHandlers.delete(button);
+      }
+    }
+
+    const registerHandler = (button, handler) => {
+      if (!button) return;
+      if (typeof handler === 'function') {
+        this.tabHandlers.set(button, handler);
+      } else {
+        this.tabHandlers.delete(button);
+      }
+    };
+
+    registerHandler(this.elements.captureButton, () => {
+      if (typeof this.ensureCameraStarted === 'function') {
+        return this.ensureCameraStarted({ fromUserGesture: true });
+      }
+      return undefined;
+    });
+
+    registerHandler(this.elements.historyButton, () => this.refreshHistory());
+
+    registerHandler(this.elements.settingsButton, () => {
+      if (typeof this.syncSettingsForm === 'function') {
+        this.syncSettingsForm();
+      }
+    });
+  }
+
+  openFilePicker(mode = 'capture') {
+    const input = this.elements.fileInput;
+    if (!input) return;
+
+    if (mode === 'import') {
+      input.removeAttribute('capture');
+    } else if (this.defaultCaptureAttr) {
+      input.setAttribute('capture', this.defaultCaptureAttr);
+    } else {
+      input.removeAttribute('capture');
+    }
+
+    input.value = '';
+    input.click();
+  }
+
+  restoreFileInputCapture() {
+    const input = this.elements.fileInput;
+    if (!input) return;
+
+    if (this.defaultCaptureAttr) {
+      input.setAttribute('capture', this.defaultCaptureAttr);
+    } else {
+      input.removeAttribute('capture');
+    }
   }
 
   bindEvents() {
     this.elements.tabs.forEach((button) => {
       button.addEventListener('click', () => {
         const tab = button.dataset.tab;
-        this.store.dispatch(actions.setActiveTab(tab));
+        if (tab) {
+          this.store.dispatch(actions.setActiveTab(tab));
+        }
+        const handler = this.tabHandlers.get(button);
+        if (handler) {
+          Promise.resolve(handler()).catch((error) => {
+            console.error('[CalorieCam] Tab handler error', error);
+            this.toast('Action failed. Check console for details.');
+          });
+        }
       });
     });
 
@@ -171,6 +285,7 @@ export class App {
         this.store.dispatch(actions.addLog(`File selected: ${file.name} (${Math.round(file.size / 1024)} KB)`, 'info'));
         this.handleFile(file);
       }
+      this.restoreFileInputCapture();
     });
 
     this.elements.demoButton.addEventListener('click', () => this.runDemo());
@@ -236,6 +351,27 @@ export class App {
     });
 
     this.elements.wipeData.addEventListener('click', () => this.wipeData());
+
+    if (this.elements.importButton) {
+      this.elements.importButton.addEventListener('click', () => {
+        this.store.dispatch(actions.setActiveTab('camera'));
+        this.openFilePicker('import');
+      });
+    }
+
+    if (this.elements.settingsClose) {
+      this.elements.settingsClose.addEventListener('click', () => {
+        this.store.dispatch(actions.setActiveTab('camera'));
+      });
+    }
+
+    if (this.elements.retryCamera) {
+      this.elements.retryCamera.addEventListener('click', () => {
+        this.ensureCameraStarted({ fromUserGesture: true }).catch((error) => {
+          console.error('[CalorieCam] Camera retry failed', error);
+        });
+      });
+    }
   }
 
   attachOnlineHandlers() {
