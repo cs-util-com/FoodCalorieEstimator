@@ -180,10 +180,6 @@
   </head>
   <body>
     <main class="container">
-      <header class="hero">
-        <h1>CalorieCam</h1>
-        <p class="lead">Single-photo calorie estimation with editable results and offline history.</p>
-      </header>
       <nav class="tab-nav" aria-label="Main navigation">
         <button id="camera-tab" class="secondary" data-tab="camera" aria-current="page">Camera</button>
         <button id="history-tab" class="secondary" data-tab="history">History</button>
@@ -195,14 +191,12 @@
           <article>
             <header>
               <h2>Capture</h2>
-              <p>Select or take a photo to estimate calories. Try the demo image to explore without a key.</p>
             </header>
             <div class="grid">
               <label>
                 <span>Upload image</span>
                 <input id="file-input" type="file" accept="image/*" capture />
               </label>
-              <button id="demo-button" class="contrast" type="button">Run demo image</button>
             </div>
             <div id="capture-status" role="status" aria-live="polite">
               <p><progress aria-label="Image processing progress"></progress></p>
@@ -210,12 +204,6 @@
             <div id="canvas-wrapper" hidden>
               <canvas id="result-canvas" width="640" height="480"></canvas>
               <div id="canvas-overlay"></div>
-            </div>
-            <div class="bbox-toggle">
-              <label>
-                <input type="checkbox" id="toggle-boxes" />
-                <span>Show bounding boxes</span>
-              </label>
             </div>
           </article>
         </section>
@@ -334,17 +322,21 @@
                 <input type="checkbox" name="defaultShowBoxes" />
                 Default bounding boxes
               </label>
+              <div class="bbox-toggle">
+                <label>
+                  <input type="checkbox" id="toggle-boxes" />
+                  <span>Show bounding boxes</span>
+                </label>
+              </div>
               <button type="submit" class="contrast">Save settings</button>
             </form>
             <hr />
             <div class="grid">
               <button id="logs-toggle" type="button">Show logs</button>
               <button id="wipe-data" class="secondary" type="button">Wipe all data</button>
+              <a href="pages/about.html" id="about-link">About &amp; disclaimers</a>
             </div>
             <pre id="logs" class="logs" hidden></pre>
-            <footer>
-              <a href="pages/about.html" id="about-link">About &amp; disclaimers</a>
-            </footer>
           </article>
         </section>
       </div>

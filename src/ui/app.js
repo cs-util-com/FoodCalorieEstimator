@@ -172,8 +172,6 @@ export class App {
       }
     });
 
-    this.elements.demoButton.addEventListener('click', () => this.runDemo());
-
     this.elements.toggleBoxes.addEventListener('change', (event) => {
       this.store.dispatch(actions.setShowBoxes(event.target.checked));
       this.store.dispatch(actions.addLog(`Show boxes: ${event.target.checked}`, 'info'));

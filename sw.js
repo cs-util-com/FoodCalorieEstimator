@@ -1,4 +1,4 @@
-const CACHE_NAME = 'caloriecam-shell-v2';
+const CACHE_NAME = 'caloriecam-shell-v3';
 const SHELL_FILES = [
   '/',
   '/index.html',
@@ -33,22 +33,54 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
-  if (url.origin !== self.location.origin && !url.href.startsWith('https://unpkg.com/')) {
+  const isSameOrigin = url.origin === self.location.origin;
+  const isNavigation = event.request.mode === 'navigate';
+  const isShellResource = isSameOrigin && SHELL_FILES.includes(url.pathname);
+
+  if (!isSameOrigin && !url.href.startsWith('https://unpkg.com/')) {
     return;
   }
 
   event.respondWith(
     caches.open(CACHE_NAME).then(async (cache) => {
       const cached = await cache.match(event.request);
-      const fetchPromise = fetch(event.request)
-        .then((response) => {
-          if (response && response.status === 200) {
-            cache.put(event.request, response.clone());
+      const fetchAndUpdate = async () => {
+        const response = await fetch(event.request);
+        if (response && response.ok) {
+          cache.put(event.request, response.clone());
+        }
+        return response;
+      };
+
+      const getNavigationFallback = async () => {
+        const fallback = (await cache.match('/index.html')) || (await cache.match('/'));
+        return fallback || null;
+      };
+
+      if (isNavigation || isShellResource) {
+        try {
+          return await fetchAndUpdate();
+        } catch {
+          if (cached) return cached;
+          if (isNavigation) {
+            const fallback = await getNavigationFallback();
+            if (fallback) return fallback;
           }
-          return response;
-        })
-        .catch(() => cached);
-      return cached || fetchPromise;
+          return Response.error();
+        }
+      }
+
+      if (cached) {
+        fetchAndUpdate().catch(() => null);
+        return cached;
+      }
+
+      try {
+        return await fetchAndUpdate();
+      } catch {
+        if (cached) return cached;
+        return Response.error();
+      }
     }),
   );
 });
