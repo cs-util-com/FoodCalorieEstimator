@@ -51,7 +51,8 @@ export class ImageCanvas {
         const scaled = scaleBox(item.bbox, cssDrawWidth, cssDrawHeight);
         if (!scaled) return;
         const box = document.createElement('div');
-        box.className = 'box';
+        box.className =
+          'absolute flex items-start justify-start rounded-xl border-2 border-emerald-400/90 px-2 py-1 text-xs font-semibold text-white';
         box.style.left = `${scaled.x + cssOffsetX}px`;
         box.style.top = `${scaled.y + cssOffsetY}px`;
         box.style.width = `${scaled.w}px`;

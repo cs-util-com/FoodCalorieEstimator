@@ -514,9 +514,16 @@ export class App {
     setTimeout(() => this.elements.notificationDialog.close(), 1600);
   }
 
+  setViewVisibility(section, isActive) {
+    if (!section) return;
+    section.classList.toggle('is-active', isActive);
+    section.classList.toggle('hidden', !isActive);
+  }
+
   switchView(tab) {
     Object.entries(this.elements.views).forEach(([key, section]) => {
-      section.classList.toggle('is-active', key === tab || (tab === 'camera' && key === 'camera'));
+      const shouldShow = key === tab || (tab === 'camera' && key === 'camera');
+      this.setViewVisibility(section, shouldShow);
     });
   }
 
@@ -526,13 +533,17 @@ export class App {
     this.elements.tabs.forEach((button) => {
       const isActive = button.dataset.tab === activeTab;
       button.setAttribute('aria-current', isActive ? 'page' : 'false');
+      button.classList.toggle('text-emerald-600', isActive);
+      button.classList.toggle('border-emerald-500', isActive);
+      button.classList.toggle('text-slate-500', !isActive);
+      button.classList.toggle('border-transparent', !isActive);
     });
     this.switchView(activeTab);
     if (state.estimation.data) {
-      this.elements.views.result.classList.add('is-active');
+      this.setViewVisibility(this.elements.views.result, true);
     }
     if (state.history.selectedId) {
-      this.elements.views.detail.classList.add('is-active');
+      this.setViewVisibility(this.elements.views.detail, true);
     }
     this.renderCamera();
     this.renderResult();
@@ -546,7 +557,10 @@ export class App {
     const estimationStatus = selectors.estimationStatus(this.store.getState());
     const isLoading = status === 'processing' || estimationStatus === 'processing';
 
-    this.elements.captureStatus.innerHTML = isLoading ? '<p><progress></progress></p>' : '';
+    this.elements.captureStatus.innerHTML = isLoading
+      ? '<span class="sr-only">Processing image</span><progress aria-label="Image processing progress" class="h-1.5 w-40 overflow-hidden rounded-full"></progress>'
+      : '';
+    this.elements.captureStatus.classList.toggle('hidden', !isLoading);
     this.elements.canvasWrapper.hidden = !this.currentImage;
   }
 
@@ -560,27 +574,37 @@ export class App {
   renderEditableItems(container) {
     const estimation = selectors.estimationData(this.store.getState());
     if (!estimation) {
-      container.innerHTML = '<p class="muted">No meal estimated yet.</p>';
+      container.innerHTML = '<p class="text-sm text-slate-500">No meal estimated yet.</p>';
       return;
     }
     container.innerHTML = '';
     estimation.items.forEach((item) => {
       const card = document.createElement('section');
-      card.className = `item-card ${item.included ? '' : 'excluded'}`;
+      card.className = `item-card space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md ${
+        item.included ? '' : 'opacity-50'
+      }`;
       const safeName = escapeHtml(item.name ?? '');
       card.innerHTML = `
-        <header class="grid">
-          <strong>${safeName}</strong>
-          <span>${(item.confidence * 100).toFixed(0)}% confidence</span>
+        <header class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <strong class="text-base font-semibold text-slate-900">${safeName}</strong>
+          <span class="text-sm font-medium text-emerald-600">${(item.confidence * 100).toFixed(0)}% confidence</span>
         </header>
-        <label>Rename <input data-action="rename" value="${safeName}" /></label>
-        <label>Manual kcal <input data-action="kcal" type="number" min="0" step="1" value="${
-          item.editedKcal ?? ''
-        }" placeholder="${item.originalKcal}" /></label>
-        <footer class="grid">
-          <button data-action="toggle" type="button">${item.included ? 'Exclude' : 'Include'}</button>
-          <button data-action="reset" type="button">Reset kcal</button>
-          <button data-action="delete" class="secondary" type="button">Remove</button>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <label class="flex flex-col gap-2 text-sm font-medium text-slate-600">Rename
+            <input data-action="rename" value="${safeName}" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/40" />
+          </label>
+          <label class="flex flex-col gap-2 text-sm font-medium text-slate-600">Manual kcal
+            <input data-action="kcal" type="number" min="0" step="1" value="${
+              item.editedKcal ?? ''
+            }" placeholder="${item.originalKcal}" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/40" />
+          </label>
+        </div>
+        <footer class="flex flex-wrap gap-3 pt-2">
+          <button data-action="toggle" type="button" class="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2">${
+            item.included ? 'Exclude' : 'Include'
+          }</button>
+          <button data-action="reset" type="button" class="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2">Reset kcal</button>
+          <button data-action="delete" class="secondary inline-flex items-center justify-center rounded-full border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2" type="button">Remove</button>
         </footer>
       `;
       card.querySelector('[data-action="rename"]').addEventListener('change', (event) => {
@@ -610,13 +634,13 @@ export class App {
   renderResult() {
     const estimation = selectors.estimationData(this.store.getState());
     if (!estimation) {
-      this.elements.itemsList.innerHTML = '<p class="muted">No meal estimated yet.</p>';
+      this.elements.itemsList.innerHTML = '<p class="text-sm text-slate-500">No meal estimated yet.</p>';
       this.elements.resultSummary.textContent = '';
       this.elements.resultNote.textContent = '';
       return;
     }
     const settings = selectors.settings(this.store.getState());
-    this.elements.resultSummary.innerHTML = `Meal range <span class="range-badge">${formatRange(
+    this.elements.resultSummary.innerHTML = `Meal range <span class="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-600">${formatRange(
       estimation.range,
       settings.units,
     )}</span>`;
@@ -629,22 +653,31 @@ export class App {
     const entries = selectors.filteredHistory(state);
     const settings = selectors.settings(state);
     this.elements.historyGrid.innerHTML = '';
+    if (!entries.length) {
+      this.elements.historyGrid.innerHTML = '<p class="col-span-full text-sm text-slate-500">No meals saved yet.</p>';
+      return;
+    }
     entries.forEach((entry) => {
       const card = document.createElement('button');
       card.type = 'button';
-      card.className = 'thumbnail';
+      card.className =
+        'group flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2';
       card.dataset.id = entry.id;
       const thumbUrl = this.ensureThumbUrl(entry.id, entry.thumbBlob);
       card.innerHTML = `
-        <img src="${thumbUrl || PLACEHOLDER_THUMB}" alt="Meal" />
-        <span>${formatEnergy(entry.totalKcal ?? entry.itemTotal ?? 0, settings.units)}</span>
+        <div class="relative h-36 w-full overflow-hidden bg-slate-100">
+          <img src="${thumbUrl || PLACEHOLDER_THUMB}" alt="Meal" class="h-full w-full object-cover transition duration-300 group-hover:scale-105" />
+          <span class="absolute bottom-2 left-2 rounded-full bg-slate-900/80 px-3 py-1 text-xs font-semibold text-white">${formatEnergy(
+            entry.totalKcal ?? entry.itemTotal ?? 0,
+            settings.units,
+          )}</span>
+        </div>
+        <div class="px-3 py-3 text-sm text-slate-600"><small class="block text-inherit">${highlight(
+          entry.items.map((item) => item.name).join(', '),
+          state.history.search,
+        )}</small></div>
       `;
       card.addEventListener('click', () => this.openDetail(entry.id));
-      const names = entry.items.map((item) => item.name).join(', ');
-      const caption = document.createElement('small');
-      caption.innerHTML = highlight(names, state.history.search);
-      caption.className = 'muted';
-      card.append(caption);
       this.elements.historyGrid.append(card);
     });
   }
@@ -667,7 +700,9 @@ export class App {
 
   renderDetail() {
     if (!this.detailRecord) {
-      this.elements.detailItems.innerHTML = '<p class="muted">Select a meal to view details.</p>';
+      this.elements.detailItems.innerHTML = '<p class="text-sm text-slate-500">Select a meal to view details.</p>';
+      this.elements.detailSummary.textContent = '';
+      this.elements.detailNote.textContent = '';
       this.elements.detailAddButton.disabled = true;
       this.elements.detailSave.disabled = true;
       this.elements.detailAddForm.hidden = true;
