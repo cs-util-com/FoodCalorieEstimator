@@ -18,14 +18,22 @@
         --bg-main: #f7fafc; /* Gray 100 */
         --border-color: #e5e7eb; /* Gray 200 */
       }
+      html, body {
+        height: 100%;
+      }
       body {
+        margin: 0;
         background: var(--bg-main);
         font-family: var(--font-sans);
         color: var(--text-primary);
       }
+      main {
+        min-height: 100%;
+        padding-top: 4rem;
+      }
       .container {
-        max-width: 800px;
-        padding: 1rem;
+        width: 100%;
+        padding: 0;
       }
       .hero {
         background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(5, 150, 105, 0.05));
@@ -44,10 +52,18 @@
         font-size: 1.1rem;
       }
       .tab-nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
         display: flex;
         gap: 0.5rem;
-        margin-bottom: 1.5rem;
+        padding: 0.75rem 1rem;
+        margin: 0;
         border-bottom: 1px solid var(--border-color);
+        background: var(--bg-main);
+        z-index: 40;
+        justify-content: center;
       }
       .tab-nav button {
         border: none;
@@ -67,12 +83,20 @@
       }
       .view { display: none; }
       .view.is-active { display: block; }
+      #views {
+        padding: 0 0 2rem;
+      }
+      #camera-view {
+        padding: 0;
+      }
       article {
         background: #fff;
         border: 1px solid var(--border-color);
         border-radius: var(--border-radius);
         padding: 1.5rem;
         box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+  max-width: 800px;
+  margin: 1.5rem auto;
       }
       article header { margin-bottom: 1.5rem; }
       article h2 { font-size: 1.5rem; font-weight: 600; }
@@ -125,16 +149,35 @@
       }
       .item-card.excluded { opacity: 0.5; }
       .bbox-toggle { margin: 1rem 0; }
-      #canvas-wrapper {
+      #camera-view article {
         position: relative;
-        border: 1px solid var(--border-color);
-        border-radius: 0.75rem;
-        overflow: hidden;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        max-width: 100%;
-        margin-top: 1rem;
+        margin: 0;
+        max-width: none;
+        height: calc(100vh - 4rem);
+        padding: 0;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+        background: #000;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
       }
-      #result-canvas { width: 100%; height: auto; display: block; }
+      #canvas-wrapper {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        background: #000;
+      }
+      #canvas-wrapper[hidden] {
+        display: none;
+      }
+      #result-canvas {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        display: block;
+      }
       #canvas-overlay { position: absolute; inset: 0; pointer-events: none; font-size: 0.75rem; color: #fff; }
       #canvas-overlay .box {
         position: absolute;
@@ -150,6 +193,62 @@
         position: absolute;
         top: -1.2rem;
         left: -2px;
+      }
+      #capture-status {
+        position: absolute;
+        top: 1.5rem;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.65);
+        color: #fff;
+        padding: 0.5rem 1rem;
+        border-radius: 999px;
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.2);
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+      #capture-status p {
+        margin: 0;
+      }
+      #capture-status progress {
+        width: 160px;
+      }
+      #capture-status[hidden] {
+        display: none;
+      }
+      #capture-status:empty {
+        display: none;
+      }
+      #file-input {
+        display: none;
+      }
+      .capture-button {
+        position: absolute;
+        bottom: 1.5rem;
+        left: 50%;
+        transform: translateX(-50%);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.85rem 1.75rem;
+        border-radius: 999px;
+        background: rgba(17, 24, 39, 0.75);
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        cursor: pointer;
+        text-transform: uppercase;
+        transition: background 0.2s ease, transform 0.2s ease;
+        backdrop-filter: blur(6px);
+      }
+      .capture-button:hover {
+        background: rgba(17, 24, 39, 0.9);
+      }
+      .capture-button:focus {
+        outline: 2px solid var(--primary);
+        outline-offset: 4px;
       }
       .logs {
         max-height: 250px;
@@ -189,22 +288,15 @@
       <div id="views">
         <section id="camera-view" class="view is-active" aria-labelledby="camera-tab">
           <article>
-            <header>
-              <h2>Capture</h2>
-            </header>
-            <div class="grid">
-              <label>
-                <span>Upload image</span>
-                <input id="file-input" type="file" accept="image/*" capture />
-              </label>
-            </div>
-            <div id="capture-status" role="status" aria-live="polite">
-              <p><progress aria-label="Image processing progress"></progress></p>
-            </div>
             <div id="canvas-wrapper" hidden>
               <canvas id="result-canvas" width="640" height="480"></canvas>
               <div id="canvas-overlay"></div>
             </div>
+            <div id="capture-status" role="status" aria-live="polite">
+              <p><progress aria-label="Image processing progress"></progress></p>
+            </div>
+            <input id="file-input" type="file" accept="image/*" capture hidden />
+            <label for="file-input" class="capture-button" role="button">Select or take a photo</label>
           </article>
         </section>
 
