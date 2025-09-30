@@ -350,9 +350,9 @@ export class App {
       const end = performance.now?.() ?? Date.now();
       this.store.dispatch(actions.addLog(`Estimation: completed in ${Math.round(end - start)}ms`, 'info'));
       console.log('[CalorieCam] Estimation success', payload);
-      this.renderCanvas();
-      this.store.dispatch(actions.setActiveTab('camera'));
-      this.showResult();
+  this.renderCanvas();
+  this.store.dispatch(actions.setActiveTab('camera'));
+  this.showResult();
     } catch (error) {
       const code = error?.code || 'UNKNOWN';
       const msg = error?.message || 'Unknown error';
@@ -390,8 +390,9 @@ export class App {
   }
 
   showResult() {
-    this.switchView('camera');
-    this.elements.views.result.classList.add('is-active');
+  this.setViewVisibility(this.elements.views.camera, true);
+    this.setViewVisibility(this.elements.views.result, true);
+    this.elements.views.result.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
   }
 
   async refreshHistory() {

@@ -8,11 +8,11 @@ function setupDom() {
       <button class="secondary" data-tab="history"></button>
       <button class="secondary" data-tab="settings"></button>
     </nav>
-    <section id="camera-view" class="view"></section>
-    <section id="result-view" class="view"></section>
-    <section id="history-view" class="view"></section>
-    <section id="detail-view" class="view"></section>
-    <section id="settings-view" class="view"></section>
+    <section id="camera-view" class="view is-active"></section>
+    <section id="result-view" class="view hidden"></section>
+    <section id="history-view" class="view hidden"></section>
+    <section id="detail-view" class="view hidden"></section>
+    <section id="settings-view" class="view hidden"></section>
   <input id="file-input" class="sr-only" />
   <label for="file-input" id="file-label">Select photo</label>
     <button id="demo-button"></button>
@@ -255,6 +255,8 @@ describe('App UI integration', () => {
     await app.handleFile(createFakeBlob());
     expect(app.preprocessService.preprocess).toHaveBeenCalled();
     expect(app.estimationService.estimate).toHaveBeenCalled();
+    const resultView = document.getElementById('result-view');
+    expect(resultView.classList.contains('hidden')).toBe(false);
   });
 
   test('runDemo hydrates estimation without a key', async () => {
