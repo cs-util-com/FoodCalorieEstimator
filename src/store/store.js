@@ -7,7 +7,7 @@ function clone(value) {
   if (typeof structuredClone === 'function') {
     try {
       return structuredClone(value);
-    } catch (error) {
+    } catch {
       // Fallback below covers legacy environments or unsupported types
     }
   }
