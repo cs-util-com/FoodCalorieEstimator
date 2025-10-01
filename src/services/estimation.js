@@ -30,11 +30,12 @@ const RESPONSE_SCHEMA = {
           bbox_1000: {
             type: 'OBJECT',
             properties: {
-              x: { type: 'INTEGER' },
-              y: { type: 'INTEGER' },
-              w: { type: 'INTEGER' },
-              h: { type: 'INTEGER' },
+              x_min: { type: 'INTEGER' },
+              y_min: { type: 'INTEGER' },
+              x_max: { type: 'INTEGER' },
+              y_max: { type: 'INTEGER' },
             },
+            required: ['x_min', 'y_min', 'x_max', 'y_max'],
           },
           notes: { type: 'STRING' },
         },

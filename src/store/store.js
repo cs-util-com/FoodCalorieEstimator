@@ -1,7 +1,27 @@
 import { confidenceToRange, buildTotalsNote } from '../utils/range.js';
 
 function clone(value) {
-  return value == null ? value : JSON.parse(JSON.stringify(value));
+  if (value == null) {
+    return value;
+  }
+  if (typeof structuredClone === 'function') {
+    try {
+      return structuredClone(value);
+    } catch {
+      // Fallback below covers legacy environments or unsupported types
+    }
+  }
+  if (value instanceof Blob) {
+    // Blobs are immutable; reuse the instance to preserve binary data
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => clone(item));
+  }
+  if (typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([key, val]) => [key, clone(val)]));
+  }
+  return value;
 }
 
 function itemCalorieValue(item) {

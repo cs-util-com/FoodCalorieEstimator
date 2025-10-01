@@ -4,344 +4,188 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>CalorieCam</title>
-  <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@2/css/pico.min.css" />
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%230066ff' d='M3 5h18v14H3z'/%3E%3Crect x='6' y='8' width='12' height='8' fill='%23fff'/%3E%3Ccircle cx='12' cy='12' r='2' fill='%230066ff'/%3E%3C/svg%3E" type="image/svg+xml" />
-    <style>
-      :root {
-        --primary: #10b981; /* Emerald 500 */
-        --primary-dark: #059669; /* Emerald 600 */
-        --contrast: #ffffff;
-        --border-radius: 1rem;
-        --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        --text-primary: #1f2937; /* Gray 800 */
-        --text-secondary: #6b7280; /* Gray 500 */
-        --bg-main: #f7fafc; /* Gray 100 */
-        --border-color: #e5e7eb; /* Gray 200 */
-      }
-      body {
-        background: var(--bg-main);
-        font-family: var(--font-sans);
-        color: var(--text-primary);
-      }
-      .container {
-        max-width: 800px;
-        padding: 1rem;
-      }
-      .hero {
-        background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(5, 150, 105, 0.05));
-        border: 1px solid var(--border-color);
-        padding: 2rem;
-        border-radius: var(--border-radius);
-        text-align: center;
-        margin-bottom: 1.5rem;
-      }
-      .hero h1 {
-        font-weight: 700;
-        margin-bottom: 0.25rem;
-      }
-      .hero .lead {
-        color: var(--text-secondary);
-        font-size: 1.1rem;
-      }
-      .tab-nav {
-        display: flex;
-        gap: 0.5rem;
-        margin-bottom: 1.5rem;
-        border-bottom: 1px solid var(--border-color);
-      }
-      .tab-nav button {
-        border: none;
-        background: none;
-        padding: 0.75rem 1rem;
-        font-weight: 500;
-        color: var(--text-secondary);
-        border-bottom: 2px solid transparent;
-        transition: all 0.2s ease;
-      }
-      .tab-nav button:hover {
-        color: var(--primary-dark);
-      }
-      .tab-nav button[aria-current='page'] {
-        color: var(--primary);
-        border-bottom-color: var(--primary);
-      }
-      .view { display: none; }
-      .view.is-active { display: block; }
-      article {
-        background: #fff;
-        border: 1px solid var(--border-color);
-        border-radius: var(--border-radius);
-        padding: 1.5rem;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.04);
-      }
-      article header { margin-bottom: 1.5rem; }
-      article h2 { font-size: 1.5rem; font-weight: 600; }
-      .grid { display: grid; gap: 1rem; }
-      @media (min-width: 768px) {
-        .grid { grid-template-columns: repeat(2, 1fr); }
-      }
-      #settings-form .grid { grid-template-columns: 1fr; }
-       @media (min-width: 768px) {
-        #settings-form .grid { grid-template-columns: repeat(2, 1fr); }
-      }
-      .history-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-        gap: 1rem;
-      }
-      .thumbnail {
-        position: relative;
-        overflow: hidden;
-        border-radius: 0.75rem;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-      }
-      .thumbnail:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 8px 16px rgba(0,0,0,0.08);
-      }
-      .thumbnail img {
-        width: 100%;
-        height: 150px;
-        object-fit: cover;
-      }
-      .thumbnail span {
-        position: absolute;
-        bottom: 0.5rem;
-        left: 0.5rem;
-        background: rgba(0,0,0,0.7);
-        color: #fff;
-        padding: 0.25rem 0.5rem;
-        border-radius: 0.5rem;
-        font-size: 0.8rem;
-      }
-      .item-card {
-        border: 1px solid var(--border-color);
-        border-radius: 0.75rem;
-        padding: 1rem;
-        margin-bottom: 1rem;
-        background: #fff;
-        transition: opacity 0.2s ease;
-      }
-      .item-card.excluded { opacity: 0.5; }
-      .bbox-toggle { margin: 1rem 0; }
-      #canvas-wrapper {
-        position: relative;
-        border: 1px solid var(--border-color);
-        border-radius: 0.75rem;
-        overflow: hidden;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        max-width: 100%;
-        margin-top: 1rem;
-      }
-      #result-canvas { width: 100%; height: auto; display: block; }
-      #canvas-overlay { position: absolute; inset: 0; pointer-events: none; font-size: 0.75rem; color: #fff; }
-      #canvas-overlay .box {
-        position: absolute;
-        border: 2px solid rgba(16, 185, 129, 0.9);
-        border-radius: 0.5rem;
-        background: rgba(16, 185, 129, 0.3);
-      }
-      #canvas-overlay .box span {
-        background: rgba(16, 185, 129, 0.9);
-        padding: 0.15rem 0.4rem;
-        border-radius: 0.25rem;
-        font-size: 0.7rem;
-        position: absolute;
-        top: -1.2rem;
-        left: -2px;
-      }
-      .logs {
-        max-height: 250px;
-        overflow-y: auto;
-        background: #1f2937; /* Gray 800 */
-        color: #f3f4f6; /* Gray 100 */
-        padding: 1rem;
-        border-radius: 0.75rem;
-        font-family: "SF Mono", "Fira Code", "Source Code Pro", monospace;
-        font-size: 0.85rem;
-        margin-top: 1rem;
-      }
-      button, input[type="submit"], input[type="button"] {
-        --pico-font-weight: 500;
-      }
-      button.contrast {
-        --pico-color: var(--contrast);
-        --pico-background-color: var(--primary);
-        --pico-border-color: var(--primary);
-      }
-      button.contrast:hover {
-        --pico-background-color: var(--primary-dark);
-        --pico-border-color: var(--primary-dark);
-      }
-      footer { margin-top: 1.5rem; }
-      hr { margin: 1.5rem 0; border-top: 1px solid var(--border-color); }
-    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+            },
+          },
+        },
+      };
+    </script>
   </head>
-  <body>
-    <main class="container">
-      <nav class="tab-nav" aria-label="Main navigation">
-        <button id="camera-tab" class="secondary" data-tab="camera" aria-current="page">Camera</button>
-        <button id="history-tab" class="secondary" data-tab="history">History</button>
-        <button id="settings-tab" class="secondary" data-tab="settings">Settings</button>
+  <body class="min-h-screen bg-slate-50 font-sans text-slate-900">
+    <main class="min-h-screen pt-20">
+      <nav class="fixed inset-x-0 top-0 z-40 flex justify-center gap-3 border-b border-slate-200 bg-slate-50/95 px-4 py-3 backdrop-blur" aria-label="Main navigation">
+        <button id="camera-tab" class="secondary border-b-2 border-transparent px-3 pb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 transition-colors duration-150 hover:text-emerald-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50" data-tab="camera" aria-current="page">Camera</button>
+        <button id="history-tab" class="secondary border-b-2 border-transparent px-3 pb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 transition-colors duration-150 hover:text-emerald-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50" data-tab="history">History</button>
+        <button id="settings-tab" class="secondary border-b-2 border-transparent px-3 pb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 transition-colors duration-150 hover:text-emerald-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50" data-tab="settings">Settings</button>
       </nav>
 
-      <div id="views">
+      <div id="views" class="space-y-8 px-4 pb-12">
         <section id="camera-view" class="view is-active" aria-labelledby="camera-tab">
-          <article>
-            <header>
-              <h2>Capture</h2>
+          <article class="relative flex h-[calc(100vh-5rem)] w-full items-end justify-center overflow-hidden bg-black">
+            <div id="canvas-wrapper" class="absolute inset-0" hidden>
+              <canvas id="result-canvas" width="640" height="480" class="h-full w-full object-contain"></canvas>
+              <div id="canvas-overlay" class="pointer-events-none absolute inset-0 text-xs text-white"></div>
+            </div>
+            <div id="capture-status" role="status" aria-live="polite" class="pointer-events-none absolute top-6 left-1/2 z-20 hidden -translate-x-1/2 items-center gap-3 rounded-full bg-slate-900/75 px-4 py-2 text-sm font-medium text-white shadow-lg backdrop-blur"></div>
+            <input id="file-input" type="file" accept="image/*" capture class="sr-only" />
+            <label for="file-input" class="secondary absolute bottom-6 left-1/2 z-20 inline-flex -translate-x-1/2 items-center justify-center rounded-full border border-white/20 bg-slate-900/80 px-7 py-3 text-sm font-semibold uppercase tracking-wide text-white shadow-lg backdrop-blur transition hover:bg-slate-900/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900" role="button">Select or take a photo</label>
+          </article>
+        </section>
+
+        <section id="result-view" class="view hidden" aria-live="polite" aria-labelledby="result-heading">
+          <article class="mx-auto max-w-4xl space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-lg">
+            <header class="space-y-2 border-b border-slate-100 pb-4">
+              <hgroup class="space-y-1">
+                <h2 id="result-heading" class="text-2xl font-semibold text-slate-900">Result</h2>
+                <p id="result-summary" class="text-sm text-slate-500"></p>
+              </hgroup>
+              <small id="result-note" class="text-xs text-slate-400"></small>
             </header>
-            <div class="grid">
-              <label>
-                <span>Upload image</span>
-                <input id="file-input" type="file" accept="image/*" capture />
+            <div id="items-list" class="space-y-4"></div>
+            <form id="add-item-form" hidden class="space-y-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 p-4">
+              <fieldset class="space-y-4">
+                <legend class="text-sm font-semibold text-slate-700">Add manual item</legend>
+                <div class="grid gap-4 sm:grid-cols-3">
+                  <label class="flex flex-col gap-2 text-sm font-medium text-slate-600">Name
+                    <input name="name" required class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/40" />
+                  </label>
+                  <label class="flex flex-col gap-2 text-sm font-medium text-slate-600">kcal
+                    <input name="kcal" type="number" min="0" step="1" required class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/40" />
+                  </label>
+                  <label class="flex flex-col gap-2 text-sm font-medium text-slate-600">Confidence
+                    <input name="confidence" type="number" min="0" max="1" step="0.01" value="0.5" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/40" />
+                  </label>
+                </div>
+                <button type="submit" class="inline-flex items-center justify-center rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2">Add</button>
+              </fieldset>
+            </form>
+            <footer class="flex flex-wrap gap-3">
+              <button id="add-item" type="button" class="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2">Add item</button>
+              <button id="save-meal" type="button" class="inline-flex items-center justify-center rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2">Save meal</button>
+            </footer>
+          </article>
+        </section>
+
+        <section id="history-view" class="view hidden" aria-labelledby="history-tab">
+          <article class="mx-auto max-w-5xl space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-lg">
+            <header class="space-y-2">
+              <h2 class="text-2xl font-semibold text-slate-900">History</h2>
+              <p class="text-sm text-slate-500">Saved meals stay on this device. Search item names to filter.</p>
+            </header>
+            <input id="history-search" type="search" placeholder="Search meals" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/40" />
+            <div id="history-grid" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"></div>
+          </article>
+        </section>
+
+        <section id="detail-view" class="view hidden" aria-labelledby="detail-heading">
+          <article class="mx-auto max-w-4xl space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-lg">
+            <header class="space-y-2 border-b border-slate-100 pb-4">
+              <hgroup class="space-y-1">
+                <h2 id="detail-heading" class="text-2xl font-semibold text-slate-900">Meal detail</h2>
+                <p id="detail-summary" class="text-sm text-slate-500"></p>
+              </hgroup>
+              <small id="detail-note" class="text-xs text-slate-400"></small>
+            </header>
+            <div id="detail-items" class="space-y-4"></div>
+            <form id="detail-add-item-form" hidden class="space-y-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 p-4">
+              <fieldset class="space-y-4">
+                <legend class="text-sm font-semibold text-slate-700">Add manual item</legend>
+                <div class="grid gap-4 sm:grid-cols-3">
+                  <label class="flex flex-col gap-2 text-sm font-medium text-slate-600">Name
+                    <input name="name" required class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/40" />
+                  </label>
+                  <label class="flex flex-col gap-2 text-sm font-medium text-slate-600">kcal
+                    <input name="kcal" type="number" min="0" step="1" required class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/40" />
+                  </label>
+                  <label class="flex flex-col gap-2 text-sm font-medium text-slate-600">Confidence
+                    <input name="confidence" type="number" min="0" max="1" step="0.01" value="0.5" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/40" />
+                  </label>
+                </div>
+                <button type="submit" class="inline-flex items-center justify-center rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2">Add</button>
+              </fieldset>
+            </form>
+            <footer class="flex flex-wrap gap-3">
+              <button id="detail-add-item" type="button" class="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2">Add item</button>
+              <button id="detail-save" type="button" class="inline-flex items-center justify-center rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2">Save changes</button>
+            </footer>
+            <hr class="border-slate-200" />
+            <div class="flex flex-wrap gap-3">
+              <button id="detail-export" type="button" class="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2">Export CSV</button>
+              <button id="detail-delete" type="button" class="secondary inline-flex items-center justify-center rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2">Delete</button>
+              <button id="detail-close" type="button" class="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2">Close</button>
+            </div>
+          </article>
+        </section>
+
+        <section id="settings-view" class="view hidden" aria-labelledby="settings-tab">
+          <article class="mx-auto max-w-4xl space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-lg">
+            <header>
+              <h2 class="text-2xl font-semibold text-slate-900">Settings</h2>
+            </header>
+            <form id="settings-form" class="space-y-6">
+              <label class="flex flex-col gap-2 text-sm font-medium text-slate-600">Gemini API key
+                <input name="apiKey" type="password" autocomplete="off" placeholder="AIza..." class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/40" />
               </label>
-            </div>
-            <div id="capture-status" role="status" aria-live="polite">
-              <p><progress aria-label="Image processing progress"></progress></p>
-            </div>
-            <div id="canvas-wrapper" hidden>
-              <canvas id="result-canvas" width="640" height="480"></canvas>
-              <div id="canvas-overlay"></div>
-            </div>
-          </article>
-        </section>
-
-        <section id="result-view" class="view" aria-live="polite" aria-labelledby="result-heading">
-          <article>
-            <header>
-              <hgroup>
-                <h2 id="result-heading">Result</h2>
-                <p id="result-summary"></p>
-              </hgroup>
-              <small id="result-note" class="muted"></small>
-            </header>
-            <div id="items-list"></div>
-            <form id="add-item-form" hidden>
-              <fieldset>
-                <legend>Add manual item</legend>
-                <div class="grid">
-                  <label> Name <input name="name" required /> </label>
-                  <label> kcal <input name="kcal" type="number" min="0" step="1" required /></label>
-                  <label> Confidence <input name="confidence" type="number" min="0" max="1" step="0.01" value="0.5" /></label>
-                </div>
-                <button type="submit">Add</button>
-              </fieldset>
-            </form>
-            <footer class="grid">
-              <button id="add-item" type="button">Add item</button>
-              <button id="save-meal" class="contrast" type="button">Save meal</button>
-            </footer>
-          </article>
-        </section>
-
-        <section id="history-view" class="view" aria-labelledby="history-tab">
-          <article>
-            <header>
-              <h2>History</h2>
-              <p>Saved meals stay on this device. Search item names to filter.</p>
-            </header>
-            <input id="history-search" type="search" placeholder="Search meals" />
-            <div id="history-grid" class="history-grid"></div>
-          </article>
-        </section>
-
-        <section id="detail-view" class="view" aria-labelledby="detail-heading">
-          <article>
-            <header>
-              <hgroup>
-                <h2 id="detail-heading">Meal detail</h2>
-                <p id="detail-summary"></p>
-              </hgroup>
-              <small id="detail-note" class="muted"></small>
-            </header>
-            <div id="detail-items"></div>
-            <form id="detail-add-item-form" hidden>
-              <fieldset>
-                <legend>Add manual item</legend>
-                <div class="grid">
-                  <label> Name <input name="name" required /> </label>
-                  <label> kcal <input name="kcal" type="number" min="0" step="1" required /></label>
-                  <label> Confidence <input name="confidence" type="number" min="0" max="1" step="0.01" value="0.5" /></label>
-                </div>
-                <button type="submit">Add</button>
-              </fieldset>
-            </form>
-            <footer class="grid">
-              <button id="detail-add-item" type="button">Add item</button>
-              <button id="detail-save" class="contrast" type="button">Save changes</button>
-            </footer>
-            <hr />
-            <div class="grid">
-              <button id="detail-export" type="button">Export CSV</button>
-              <button id="detail-delete" class="secondary" type="button">Delete</button>
-              <button id="detail-close" type="button">Close</button>
-            </div>
-          </article>
-        </section>
-
-        <section id="settings-view" class="view" aria-labelledby="settings-tab">
-          <article>
-            <header>
-              <h2>Settings</h2>
-            </header>
-            <form id="settings-form">
-              <label> Gemini API key <input name="apiKey" type="password" autocomplete="off" placeholder="AIza..." /></label>
-              <small>Get your key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">Google AI Studio</a>. The key is stored only in your browser.</small>
-              <div class="grid">
-                <label>
-                  Model variant
-                  <select name="modelVariant">
+              <small class="text-xs text-slate-500">Get your key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" class="text-emerald-600 underline offset-2">Google AI Studio</a>. The key is stored only in your browser.</small>
+              <div class="grid gap-4 md:grid-cols-2">
+                <label class="flex flex-col gap-2 text-sm font-medium text-slate-600">Model variant
+                  <select name="modelVariant" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/40">
                     <option value="flash">Gemini 2.5 Flash</option>
                     <option value="pro">Gemini 2.5 Pro</option>
                   </select>
                 </label>
-                <label>
-                  Preprocess size (px)
-                  <select name="preprocessSize">
+                <label class="flex flex-col gap-2 text-sm font-medium text-slate-600">Preprocess size (px)
+                  <select name="preprocessSize" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/40">
                     <option value="1024">1024</option>
                     <option value="1536">1536</option>
                   </select>
                 </label>
               </div>
-              <div class="grid">
-                <label>
-                  Units
-                  <select name="units">
+              <div class="grid gap-4 md:grid-cols-2">
+                <label class="flex flex-col gap-2 text-sm font-medium text-slate-600">Units
+                  <select name="units" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/40">
                     <option value="kcal">kcal</option>
                     <option value="kJ">kJ</option>
                   </select>
                 </label>
-                <label>
-                  Confidence threshold
-                  <input type="range" name="confidenceThreshold" min="0" max="1" step="0.05" />
+                <label class="flex flex-col gap-2 text-sm font-medium text-slate-600">Confidence threshold
+                  <input type="range" name="confidenceThreshold" min="0" max="1" step="0.05" class="accent-emerald-500" />
                 </label>
               </div>
-              <label>
-                <input type="checkbox" name="defaultShowBoxes" />
+              <label class="flex items-center gap-3 text-sm font-medium text-slate-600">
+                <input type="checkbox" name="defaultShowBoxes" class="h-4 w-4 rounded border-slate-300 text-emerald-500 focus:ring-emerald-400" />
                 Default bounding boxes
               </label>
-              <div class="bbox-toggle">
-                <label>
-                  <input type="checkbox" id="toggle-boxes" />
+              <div class="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+                <label class="flex items-center gap-3 text-sm font-medium text-slate-600">
+                  <input type="checkbox" id="toggle-boxes" class="h-4 w-4 rounded border-slate-300 text-emerald-500 focus:ring-emerald-400" />
                   <span>Show bounding boxes</span>
                 </label>
               </div>
-              <button type="submit" class="contrast">Save settings</button>
+              <button type="submit" class="inline-flex items-center justify-center rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2">Save settings</button>
             </form>
-            <hr />
-            <div class="grid">
-              <button id="logs-toggle" type="button">Show logs</button>
-              <button id="wipe-data" class="secondary" type="button">Wipe all data</button>
-              <a href="pages/about.html" id="about-link">About &amp; disclaimers</a>
+            <hr class="border-slate-200" />
+            <div class="flex flex-wrap items-center gap-3">
+              <button id="logs-toggle" type="button" class="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2">Show logs</button>
+              <button id="wipe-data" class="secondary inline-flex items-center justify-center rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2" type="button">Wipe all data</button>
+              <a href="pages/about.html" id="about-link" class="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2">About &amp; disclaimers</a>
             </div>
-            <pre id="logs" class="logs" hidden></pre>
+            <pre id="logs" class="hidden whitespace-pre-wrap rounded-2xl bg-slate-900 p-4 text-xs font-mono text-slate-100" hidden></pre>
           </article>
         </section>
       </div>
     </main>
-    <dialog id="notification-dialog"></dialog>
+    <dialog id="notification-dialog" class="rounded-2xl bg-slate-900 px-6 py-4 text-sm font-medium text-white shadow-xl"></dialog>
     <script type="module" src="./src/index.js"></script>
   </body>
 </html>

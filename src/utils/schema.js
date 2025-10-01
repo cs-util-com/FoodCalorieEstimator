@@ -10,10 +10,28 @@ function assert(condition, message) {
 function parseBox(raw) {
   if (raw == null) return null;
   assert(typeof raw === 'object', 'bbox_1000 must be an object');
+  const hasMinMax = ['x_min', 'y_min', 'x_max', 'y_max'].every((key) => key in raw);
+  const hasRect = ['x', 'y', 'w', 'h'].every((key) => key in raw);
+
+  if (!hasMinMax && !hasRect) {
+    throw new Error('bbox_1000 must include either (x_min,y_min,x_max,y_max) or (x,y,w,h)');
+  }
+
+  if (hasMinMax) {
+    const { x_min: xMin, y_min: yMin, x_max: xMax, y_max: yMax } = raw;
+    for (const key of ['x_min', 'y_min', 'x_max', 'y_max']) {
+      const value = raw[key];
+      assert(Number.isInteger(value) && value >= 0 && value <= 1000, `bbox_1000.${key} must be an integer between 0 and 1000`);
+    }
+    assert(xMin <= xMax, 'bbox_1000.x_max must be greater than or equal to x_min');
+    assert(yMin <= yMax, 'bbox_1000.y_max must be greater than or equal to y_min');
+    return { x: xMin, y: yMin, w: xMax - xMin, h: yMax - yMin };
+  }
+
   const { x, y, w, h } = raw;
   for (const key of ['x', 'y', 'w', 'h']) {
     const value = raw[key];
-    assert(Number.isInteger(value) && value >= 0, `bbox_1000.${key} must be a non-negative integer`);
+    assert(Number.isInteger(value) && value >= 0 && value <= 1000, `bbox_1000.${key} must be an integer between 0 and 1000`);
   }
   return { x, y, w, h };
 }

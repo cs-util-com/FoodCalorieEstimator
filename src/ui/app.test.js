@@ -8,12 +8,13 @@ function setupDom() {
       <button class="secondary" data-tab="history"></button>
       <button class="secondary" data-tab="settings"></button>
     </nav>
-    <section id="camera-view" class="view"></section>
-    <section id="result-view" class="view"></section>
-    <section id="history-view" class="view"></section>
-    <section id="detail-view" class="view"></section>
-    <section id="settings-view" class="view"></section>
-    <input id="file-input" />
+    <section id="camera-view" class="view is-active"></section>
+    <section id="result-view" class="view hidden"></section>
+    <section id="history-view" class="view hidden"></section>
+    <section id="detail-view" class="view hidden"></section>
+    <section id="settings-view" class="view hidden"></section>
+  <input id="file-input" class="sr-only" />
+  <label for="file-input" id="file-label">Select photo</label>
     <button id="demo-button"></button>
     <input type="checkbox" id="toggle-boxes" />
     <div id="capture-status"></div>
@@ -254,6 +255,8 @@ describe('App UI integration', () => {
     await app.handleFile(createFakeBlob());
     expect(app.preprocessService.preprocess).toHaveBeenCalled();
     expect(app.estimationService.estimate).toHaveBeenCalled();
+    const resultView = document.getElementById('result-view');
+    expect(resultView.classList.contains('hidden')).toBe(false);
   });
 
   test('runDemo hydrates estimation without a key', async () => {
@@ -263,6 +266,22 @@ describe('App UI integration', () => {
     expect(app.estimationService.runDemo).toHaveBeenCalled();
     expect(store.getState().estimation.data).not.toBeNull();
     expect(app.currentImage.blob).toBeInstanceOf(Blob);
+  });
+
+  test('file input change calls handleFile with selected blob', () => {
+    // Why: Ensures the custom capture button still forwards selected files into the pipeline.
+    const input = document.getElementById('file-input');
+    const sample = createFakeBlob();
+    const handleSpy = jest.spyOn(app, 'handleFile').mockImplementation(() => Promise.resolve());
+    const event = new Event('change');
+    Object.defineProperty(input, 'files', {
+      configurable: true,
+      value: [sample],
+    });
+
+    input.dispatchEvent(event);
+
+    expect(handleSpy).toHaveBeenCalledWith(sample);
   });
 });
 

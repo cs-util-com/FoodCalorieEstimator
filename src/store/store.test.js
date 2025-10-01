@@ -127,6 +127,24 @@ describe('store reducers', () => {
     expect(store.getState().settings.defaultShowBoxes).toBe(false);
     expect(store.getState().settings.apiKey).toBe('key');
   });
+
+  test('history entries retain Blob thumbnails', () => {
+    // Why: History grid must keep access to stored thumbnails after hydration.
+    const store = createStore();
+    const thumb = new Blob(['thumb'], { type: 'image/webp' });
+    store.dispatch(
+      actions.setHistoryEntries([
+        {
+          id: 'meal-1',
+          createdAt: Date.now(),
+          items: [],
+          thumbBlob: thumb,
+        },
+      ]),
+    );
+    const entry = store.getState().history.entries[0];
+    expect(entry.thumbBlob).toBeInstanceOf(Blob);
+  });
 });
 
 describe('selectors', () => {
