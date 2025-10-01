@@ -73,5 +73,6 @@ describe('ImageCanvas', () => {
     expect(box.style.width).toBe(`60px`);
     // height = 0.2 * (drawHeight=480) * cssScale(0.5) = 48px
     expect(box.style.height).toBe(`48px`);
+    expect(box.style.boxSizing).toBe('border-box');
   });
 });

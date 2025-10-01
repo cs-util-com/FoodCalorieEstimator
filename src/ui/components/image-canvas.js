@@ -53,6 +53,7 @@ export class ImageCanvas {
         const box = document.createElement('div');
         box.className =
           'absolute flex items-start justify-start rounded-xl border-2 border-emerald-400/90 px-2 py-1 text-xs font-semibold text-white';
+        box.style.boxSizing = 'border-box';
         box.style.left = `${scaled.x + cssOffsetX}px`;
         box.style.top = `${scaled.y + cssOffsetY}px`;
         box.style.width = `${scaled.w}px`;

@@ -16,7 +16,7 @@ const DEMO_SAMPLE = {
       estimated_grams: 220,
       used_scale_ref: false,
       scale_ref: null,
-      bbox_1000: { x: 120, y: 180, w: 400, h: 420 },
+      bbox_1000: { x_min: 120, y_min: 180, x_max: 520, y_max: 600 },
       notes: 'Plant-based patty',
     },
     {
@@ -26,7 +26,7 @@ const DEMO_SAMPLE = {
       estimated_grams: 80,
       used_scale_ref: false,
       scale_ref: null,
-      bbox_1000: { x: 580, y: 220, w: 320, h: 360 },
+      bbox_1000: { x_min: 580, y_min: 220, x_max: 900, y_max: 580 },
       notes: null,
     },
     {
@@ -36,7 +36,7 @@ const DEMO_SAMPLE = {
       estimated_grams: null,
       used_scale_ref: false,
       scale_ref: null,
-      bbox_1000: { x: 760, y: 80, w: 200, h: 380 },
+      bbox_1000: { x_min: 760, y_min: 80, x_max: 960, y_max: 460 },
       notes: null,
     },
   ],

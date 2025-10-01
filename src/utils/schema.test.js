@@ -13,7 +13,7 @@ const SAMPLE = {
       estimated_grams: 140,
       used_scale_ref: true,
       scale_ref: 'plate',
-      bbox_1000: { x: 100, y: 200, w: 300, h: 250 },
+      bbox_1000: { x_min: 100, y_min: 200, x_max: 400, y_max: 450 },
       notes: 'Half slice',
     },
   ],
@@ -35,6 +35,20 @@ describe('parseEstimationResponse', () => {
     });
   });
 
+  test('accepts legacy width/height bbox objects', () => {
+    const withLegacyBox = {
+      ...SAMPLE,
+      items: [
+        {
+          ...SAMPLE.items[0],
+          bbox_1000: { x: 0, y: 10, w: 200, h: 150 },
+        },
+      ],
+    };
+    const parsed = parseEstimationResponse(withLegacyBox);
+    expect(parsed.items[0].bbox_1000).toEqual({ x: 0, y: 10, w: 200, h: 150 });
+  });
+
   test('throws on invalid version', () => {
     // Why: Prevents silently accepting incompatible schema revisions.
     expect(() => parseEstimationResponse({ ...SAMPLE, version: '1.0' })).toThrow(/version/);
@@ -52,10 +66,23 @@ describe('parseEstimationResponse', () => {
       items: [
         {
           ...SAMPLE.items[0],
-          bbox_1000: { x: -1, y: 0, w: 1, h: 1 },
+          bbox_1000: { x_min: -1, y_min: 0, x_max: 1, y_max: 1 },
         },
       ],
     };
     expect(() => parseEstimationResponse(invalid)).toThrow(/bbox_1000/);
+  });
+
+  test('throws when bbox lacks required keys', () => {
+    const invalid = {
+      ...SAMPLE,
+      items: [
+        {
+          ...SAMPLE.items[0],
+          bbox_1000: { x: 1, y: 2, w: 3 },
+        },
+      ],
+    };
+    expect(() => parseEstimationResponse(invalid)).toThrow(/bbox_1000 must include either/);
   });
 });
