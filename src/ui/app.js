@@ -128,6 +128,7 @@ export class App {
       toggleBoxes: this.root.getElementById('toggle-boxes'),
       captureStatus: this.root.getElementById('capture-status'),
       canvasWrapper: this.root.getElementById('canvas-wrapper'),
+  cameraEmptyState: this.root.getElementById('camera-empty-state'),
       resultCanvas: this.root.getElementById('result-canvas'),
       canvasOverlay: this.root.getElementById('canvas-overlay'),
       resultSummary: this.root.getElementById('result-summary'),
@@ -566,6 +567,10 @@ export class App {
       : '';
     this.elements.captureStatus.classList.toggle('hidden', !isLoading);
     this.elements.canvasWrapper.hidden = !this.currentImage;
+    if (this.elements.cameraEmptyState) {
+      const showEmptyState = !this.currentImage && !isLoading;
+      this.elements.cameraEmptyState.hidden = !showEmptyState;
+    }
   }
 
   renderCanvas() {
