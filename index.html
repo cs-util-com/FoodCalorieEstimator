@@ -53,9 +53,9 @@
         </div>
       </nav>
 
-      <div id="views" class="space-y-8 px-4 pb-12">
+  <div id="views" class="-mt-24 space-y-8 pb-12">
         <section id="camera-view" class="view is-active" aria-labelledby="camera-tab">
-          <article class="relative flex h-[calc(100vh-5rem)] w-full items-end justify-center overflow-hidden bg-black">
+          <article class="relative flex min-h-screen w-full items-end justify-center overflow-hidden bg-black">
             <div id="canvas-wrapper" class="absolute inset-0" hidden>
               <canvas id="result-canvas" width="640" height="480" class="h-full w-full object-contain"></canvas>
               <div id="canvas-overlay" class="pointer-events-none absolute inset-0 text-xs text-white"></div>
@@ -66,7 +66,7 @@
           </article>
         </section>
 
-  <section id="result-view" class="view hidden pt-24" aria-live="polite" aria-labelledby="result-heading">
+  <section id="result-view" class="view hidden px-4 pt-24" aria-live="polite" aria-labelledby="result-heading">
           <article class="mx-auto max-w-4xl space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-lg">
             <header class="space-y-2 border-b border-slate-100 pb-4">
               <hgroup class="space-y-1">
@@ -100,7 +100,7 @@
           </article>
         </section>
 
-  <section id="history-view" class="view hidden pt-24" aria-labelledby="history-tab">
+  <section id="history-view" class="view hidden px-4 pt-24" aria-labelledby="history-tab">
           <article class="mx-auto max-w-5xl space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-lg">
             <header class="space-y-2">
               <h2 class="text-2xl font-semibold text-slate-900">History</h2>
@@ -111,7 +111,7 @@
           </article>
         </section>
 
-  <section id="detail-view" class="view hidden pt-24" aria-labelledby="detail-heading">
+  <section id="detail-view" class="view hidden px-4 pt-24" aria-labelledby="detail-heading">
           <article class="mx-auto max-w-4xl space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-lg">
             <header class="space-y-2 border-b border-slate-100 pb-4">
               <hgroup class="space-y-1">
@@ -151,7 +151,7 @@
           </article>
         </section>
 
-  <section id="settings-view" class="view hidden pt-24" aria-labelledby="settings-tab">
+  <section id="settings-view" class="view hidden px-4 pt-24" aria-labelledby="settings-tab">
           <article class="mx-auto max-w-4xl space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-lg">
             <header>
               <h2 class="text-2xl font-semibold text-slate-900">Settings</h2>
