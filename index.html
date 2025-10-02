@@ -22,16 +22,47 @@
     </script>
   </head>
   <body class="min-h-screen bg-slate-50 font-sans text-slate-900">
-    <main class="min-h-screen pt-20">
-      <nav class="fixed inset-x-0 top-0 z-40 flex justify-center gap-3 border-b border-slate-200 bg-slate-50/95 px-4 py-3 backdrop-blur" aria-label="Main navigation">
-        <button id="camera-tab" class="secondary border-b-2 border-transparent px-3 pb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 transition-colors duration-150 hover:text-emerald-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50" data-tab="camera" aria-current="page">Camera</button>
-        <button id="history-tab" class="secondary border-b-2 border-transparent px-3 pb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 transition-colors duration-150 hover:text-emerald-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50" data-tab="history">History</button>
-        <button id="settings-tab" class="secondary border-b-2 border-transparent px-3 pb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 transition-colors duration-150 hover:text-emerald-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50" data-tab="settings">Settings</button>
+    <main class="min-h-screen">
+  <nav class="fixed inset-x-0 top-0 z-40 flex justify-center gap-4 px-4 pt-4 pb-6 text-slate-100 backdrop-blur relative" aria-label="Main navigation">
+        <div class="pointer-events-none absolute inset-0 bg-gradient-to-b from-slate-900/80 via-slate-900/40 to-transparent"></div>
+        <div class="relative flex items-center gap-3">
+          <button id="camera-tab" title="Camera" aria-label="Camera" class="secondary inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-slate-900/70 text-slate-200 shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 hover:text-emerald-200" data-tab="camera" aria-current="page">
+            <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3.75" y="6.5" width="16.5" height="11.5" rx="2.5"></rect>
+              <path d="M8.5 6.5L9.9 4.5c.2-.3.5-.5.8-.5h2.6c.3 0 .6.2.8.5l1.4 2"></path>
+              <circle cx="12" cy="12.25" r="3.5"></circle>
+              <circle cx="12" cy="12.25" r="1.5" fill="currentColor" stroke="none"></circle>
+            </svg>
+            <span class="sr-only">Camera</span>
+          </button>
+          <button id="history-tab" title="History" aria-label="History" class="secondary inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-slate-900/70 text-slate-200 shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 hover:text-emerald-200" data-tab="history">
+            <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M5.25 8.5v-2.9l-1.8 1.8"></path>
+              <path d="M12 4.5a7.5 7.5 0 1 1-5.3 12.8"></path>
+              <path d="M12 8v4.25l2.75 1.5"></path>
+            </svg>
+            <span class="sr-only">History</span>
+          </button>
+          <button id="settings-tab" title="Settings" aria-label="Settings" class="secondary inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-slate-900/70 text-slate-200 shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 hover:text-emerald-200" data-tab="settings">
+            <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="2.4"></circle>
+              <path d="M4.25 12a7.76 7.76 0 0 1 .06-1l-1.64-1.26 1.5-2.6 1.96.5a7.8 7.8 0 0 1 1.42-1.42l-.5-1.96 2.6-1.5 1.26 1.64a7.76 7.76 0 0 1 2-.06l1.26-1.64 2.6 1.5-.5 1.96a7.8 7.8 0 0 1 1.42 1.42l1.96-.5 1.5 2.6-1.64 1.26a7.76 7.76 0 0 1 .06 2l1.64 1.26-1.5 2.6-1.96-.5a7.8 7.8 0 0 1-1.42 1.42l.5 1.96-2.6 1.5-1.26-1.64a7.76 7.76 0 0 1-2 .06l-1.26 1.64-2.6-1.5.5-1.96a7.8 7.8 0 0 1-1.42-1.42l-1.96.5-1.5-2.6 1.64-1.26a7.76 7.76 0 0 1-.06-2Z"></path>
+            </svg>
+            <span class="sr-only">Settings</span>
+          </button>
+        </div>
       </nav>
 
-      <div id="views" class="space-y-8 px-4 pb-12">
+  <div id="views" class="-mt-24 space-y-8 pb-12">
         <section id="camera-view" class="view is-active" aria-labelledby="camera-tab">
-          <article class="relative flex h-[calc(100vh-5rem)] w-full items-end justify-center overflow-hidden bg-black">
+          <article class="relative flex min-h-screen w-full items-end justify-center overflow-hidden bg-black">
+            <div id="camera-empty-state" class="pointer-events-none absolute inset-0 flex items-center justify-center px-6">
+              <div class="pointer-events-auto max-w-md rounded-3xl bg-white/90 p-6 text-center shadow-xl backdrop-blur">
+                <h2 class="text-2xl font-semibold text-slate-900">Estimate calories from a single photo</h2>
+                <p class="mt-3 text-sm text-slate-600">CalorieCam maps each visible item, confidence, and kcal range locally on your device.</p>
+                <p class="mt-5 text-sm font-semibold text-emerald-600">Select or take a photo to get started.</p>
+              </div>
+            </div>
             <div id="canvas-wrapper" class="absolute inset-0" hidden>
               <canvas id="result-canvas" width="640" height="480" class="h-full w-full object-contain"></canvas>
               <div id="canvas-overlay" class="pointer-events-none absolute inset-0 text-xs text-white"></div>
@@ -42,7 +73,7 @@
           </article>
         </section>
 
-        <section id="result-view" class="view hidden" aria-live="polite" aria-labelledby="result-heading">
+  <section id="result-view" class="view hidden px-4 pt-24" aria-live="polite" aria-labelledby="result-heading">
           <article class="mx-auto max-w-4xl space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-lg">
             <header class="space-y-2 border-b border-slate-100 pb-4">
               <hgroup class="space-y-1">
@@ -76,7 +107,7 @@
           </article>
         </section>
 
-        <section id="history-view" class="view hidden" aria-labelledby="history-tab">
+  <section id="history-view" class="view hidden px-4 pt-24" aria-labelledby="history-tab">
           <article class="mx-auto max-w-5xl space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-lg">
             <header class="space-y-2">
               <h2 class="text-2xl font-semibold text-slate-900">History</h2>
@@ -87,7 +118,7 @@
           </article>
         </section>
 
-        <section id="detail-view" class="view hidden" aria-labelledby="detail-heading">
+  <section id="detail-view" class="view hidden px-4 pt-24" aria-labelledby="detail-heading">
           <article class="mx-auto max-w-4xl space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-lg">
             <header class="space-y-2 border-b border-slate-100 pb-4">
               <hgroup class="space-y-1">
@@ -127,7 +158,7 @@
           </article>
         </section>
 
-        <section id="settings-view" class="view hidden" aria-labelledby="settings-tab">
+  <section id="settings-view" class="view hidden px-4 pt-24" aria-labelledby="settings-tab">
           <article class="mx-auto max-w-4xl space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-lg">
             <header>
               <h2 class="text-2xl font-semibold text-slate-900">Settings</h2>
