@@ -534,10 +534,13 @@ export class App {
     this.elements.tabs.forEach((button) => {
       const isActive = button.dataset.tab === activeTab;
       button.setAttribute('aria-current', isActive ? 'page' : 'false');
-      button.classList.toggle('text-emerald-600', isActive);
-      button.classList.toggle('border-emerald-500', isActive);
-      button.classList.toggle('text-slate-500', !isActive);
-      button.classList.toggle('border-transparent', !isActive);
+      button.classList.toggle('bg-emerald-500', isActive);
+      button.classList.toggle('text-white', isActive);
+      button.classList.toggle('shadow-lg', isActive);
+      button.classList.toggle('border-emerald-200/80', isActive);
+      button.classList.toggle('bg-slate-900/70', !isActive);
+      button.classList.toggle('text-slate-200', !isActive);
+      button.classList.toggle('border-white/30', !isActive);
     });
     this.switchView(activeTab);
     if (state.estimation.data) {
