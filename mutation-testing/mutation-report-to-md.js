@@ -137,7 +137,7 @@ function extractTestFailureType(statusReason) {
 
 function generateHeader(report, stats) {
   const timestamp = new Date().toISOString();
-  const scoreColor = stats.mutationScore >= 80 ? '🟢' : stats.mutationScore >= 60 ? '🟡' : '🔴';
+  const scoreColor = stats.mutationScore >= 60 ? '🟢' : stats.mutationScore >= 50 ? '🟡' : '🔴';
   
   return `# 🧬 Mutation Testing Report
 
@@ -154,8 +154,8 @@ function generateHeader(report, stats) {
 }
 
 function generateExecutiveSummary(stats) {
-  const riskLevel = stats.mutationScore >= 80 ? 'LOW' : stats.mutationScore >= 60 ? 'MEDIUM' : 'HIGH';
-  const riskEmoji = stats.mutationScore >= 80 ? '✅' : stats.mutationScore >= 60 ? '⚠️' : '❌';
+  const riskLevel = stats.mutationScore >= 60 ? 'LOW' : stats.mutationScore >= 50 ? 'MEDIUM' : 'HIGH';
+  const riskEmoji = stats.mutationScore >= 60 ? '✅' : stats.mutationScore >= 50 ? '⚠️' : '❌';
   
   return `## 📊 Executive Summary
 

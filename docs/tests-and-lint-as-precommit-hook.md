@@ -69,5 +69,5 @@ git commit --allow-empty -m "test hook"
 
 ## Additional Notes
 
-* Developers can bypass local hooks with `--no-verify`, so keep CI with required checks as the final gate.
-* For faster commits, consider moving long-running suites to a `pre-push` hook or to CI.
+- Developers can bypass local hooks with `--no-verify`, so keep CI with required checks as the final gate.
+- For faster commits, consider moving long-running suites to a `pre-push` hook or to CI.

@@ -1,5 +1,7 @@
 # Stryker Mutation testing
 .stryker-tmp/
+mutation-testing/reports/mutation-report.json
+mutation-testing/reports/html/
 
 # Logs
 logs
@@ -25,6 +27,8 @@ lib-cov
 # Coverage directory used by tools like istanbul
 coverage
 *.lcov
+playwright-report/
+test-results/
 
 # nyc test coverage
 .nyc_output
