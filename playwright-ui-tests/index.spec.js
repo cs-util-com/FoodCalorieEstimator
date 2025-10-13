@@ -43,11 +43,30 @@ test.describe('index.html smoke test', () => {
     // Using 'load' avoids timeouts seen when parallel browsers wait for 'networkidle'.
     await page.waitForLoadState('load');
 
-    const heroHeading = page.getByRole('heading', {
-      level: 1,
-      name: /template web app/i,
+    const navigation = page.getByRole('navigation', { name: /main navigation/i });
+    await expect(navigation).toBeVisible();
+
+    const cameraTab = page.getByRole('button', { name: 'Camera' });
+    await expect(cameraTab).toHaveAttribute('aria-current', 'page');
+
+    const cameraView = page.locator('#camera-view');
+    await expect(cameraView).toBeVisible();
+
+    const emptyStateHeading = page.getByRole('heading', {
+      level: 2,
+      name: /estimate calories from a single photo/i,
     });
-    await expect(heroHeading).toBeVisible();
+    await expect(emptyStateHeading).toBeVisible();
+
+  const captureCta = page.locator('label[for="file-input"][role="button"]');
+    await expect(captureCta).toBeVisible();
+
+  const fileInput = page.getByLabel('Select or take a photo');
+  await expect(fileInput).toHaveAttribute('type', 'file');
+  await expect(fileInput).toHaveAttribute('accept', /image\/*/i);
+
+    const canvasWrapper = page.locator('#canvas-wrapper');
+    await expect(canvasWrapper).toBeHidden();
 
     expect(consoleIssues, 'Console warning/error detected while loading index.html').toEqual([]);
     expect(pageErrors, 'Unhandled page errors detected while loading index.html').toEqual([]);
