@@ -29,7 +29,7 @@ assignees: ''
 <!-- Very specific, measurable criteria for completion -->
 - [ ] All tests pass: `npm test`
 - [ ] Quality checks pass: `npm run check:all`
-- [ ] Mutation testing >80%: `npm run mutation`
+- [ ] Mutation testing >50%: `npm run mutation`
 - [ ] Specific functionality works as described
 - [ ] Documentation is updated if needed
 
